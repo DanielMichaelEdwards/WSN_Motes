@@ -2,7 +2,7 @@
 #include <SPI.h>
 
 const uint8_t Radio_Memory_Configuration[ ] = { 
-  #include "C:\Users\95ry9\Documents\Arduino\ConfigSetup\New.cfg" 
+  #include "C:\Users\95ry9\Documents\Varsity\Fourth_Year\ELEN4002_Lab_Proj\WSN_Motes\ConfigSetup\New.cfg" 
   };
 
 
@@ -78,6 +78,7 @@ void loop() {
 ///////////////////////////////////////////////////
   //Start of Powerup From Cold sequence
 //////////////////////////////////////////////////
+  
   digitalWrite(slaveSelectPin, LOW);
 
   receivedVal = SPI.transfer(0xFF);
@@ -122,16 +123,43 @@ void loop() {
 //Start of Config Sequence
 /////////////////////////////////////////
   
-  digitalWrite(slaveSelectPin, LOW);
-    
-  for(int i = 276; i<304;i++)
+  
+  int temp = 0;
+  long Value = 0;
+  int count = 0;
+  int y =0;
+  
+
+  while (count < Size_OF)
+  {
+    digitalWrite(slaveSelectPin, LOW);
+    temp = count +3;
+    y = 2;
+  for(int i = count; i<temp;i++)
+  {
+    long power = pow(256,y)+0.5;
+    Value += power*Radio_Memory_Configuration[i];
+    Serial.println(Value);
+    y--;
+  }
+  count = temp;
+
+  for(int i = count; i< Value;i++)
   {
     receivedVal = SPI.transfer(Radio_Memory_Configuration[i]);
     Serial.print(receivedVal,HEX);
     Serial.print("\t");
     Serial.println(Radio_Memory_Configuration[i],HEX);
   }
-  
+
+  digitalWrite(slaveSelectPin, HIGH);
+  count = Value;
+  Serial.print("Count \t");
+  Serial.println(count);
+  Serial.println(Value,HEX);
+  //count = Size_OF;
+  }
+  digitalWrite(slaveSelectPin, LOW);
   receivedVal = SPI.transfer(0b10000101);
   Serial.println(receivedVal,HEX);
   digitalWrite(slaveSelectPin, HIGH);
@@ -169,6 +197,6 @@ void loop() {
   x++;
   digitalWrite(slaveSelectPin, HIGH);
 
-  Read_Register(0x200002E4,2);
+  Read_Register(0x20000514,2);
   }
 }
