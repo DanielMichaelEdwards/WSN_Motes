@@ -65,10 +65,57 @@ void setup() {
   digitalWrite(slaveSelectPin, HIGH);
 }
 
-
+int Data = 0;
 void loop() {
 
-Read_Register(0x400042B4,2);
+ 
+  digitalWrite(slaveSelectPin, LOW);
+  Data = SPI.transfer(0b00111000);
+  Serial.println(Data,HEX);
+
+  Data = SPI.transfer(0x20);
+  Serial.println(Data,HEX); 
+  Data = SPI.transfer(0x00);
+  Serial.println(Data,HEX);
+  Data = SPI.transfer(0x05);
+  Serial.println(Data,HEX); 
+  Data = SPI.transfer(0x48);
+  Serial.println(Data,HEX);
+
+  Data = SPI.transfer(0x00);
+  Serial.println(Data,HEX); 
+  Data = SPI.transfer(0x01 );
+  Serial.println(Data,HEX);
+  Data = SPI.transfer(0x00);
+  Serial.println(Data,HEX); 
+  Data = SPI.transfer(0x00);
+  Serial.println(Data,HEX);
+digitalWrite(slaveSelectPin, HIGH);
   
-while(1){}
+
+  digitalWrite(slaveSelectPin, LOW);
+  SPI.transfer(0x82);
+  digitalWrite(slaveSelectPin, HIGH);
+
+  Read_Register(0x400042B4,1);
+
+  delay(100);
+
+  digitalWrite(slaveSelectPin, LOW);
+  SPI.transfer(0x84);
+  digitalWrite(slaveSelectPin, HIGH);
+  
+  
+
+  Read_Register(0x400042B4,1);
+
+  Read_Register(0x20000548,1);
+
+
+//Read_Register(0x200002F4,1);
+while(1){
+  
+  
+  Read_Register(0x400042B4,1);
+  delay(1000);}
 }
