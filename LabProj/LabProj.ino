@@ -1,51 +1,12 @@
 // inslude the SPI library:
 #include <SPI.h>
 #include <stdint.h>
+#include "ADF7030.h"
 
 // set pin 10 as the slave select for the Transceiver:
 const int slaveSelectPin = 10;
 
-
-
-
- void Read_Register(uint32_t Address, int Iterations){
-
-  uint8_t AddressArray[4];
-  int ReceivedData = 0;
-  AddressArray[0] = Address >> 24;
-  AddressArray[1] = Address >> 16;
-  AddressArray[2] = Address >>  8;
-  AddressArray[3] = Address;
-
-  digitalWrite(slaveSelectPin, LOW);
-
-  Serial.println("Status:");
-  
-  ReceivedData = SPI.transfer(0b01111000);
-  Serial.println(ReceivedData,HEX);
-
-  for(int i=0;i<4;i++)
-  {
-    ReceivedData = SPI.transfer(AddressArray[i]);
-    Serial.println(ReceivedData,HEX);
-  }
-
-  ReceivedData = SPI.transfer(0xFF);
-  Serial.println(ReceivedData,HEX);
-  ReceivedData = SPI.transfer(0xFF);
-  Serial.println(ReceivedData,HEX);
-
-  Serial.println("");
-  Serial.println("Register Data:");
-  
-  for(int j=0; j< Iterations*4;j++)
-  {
-    ReceivedData = SPI.transfer(0xFF);
-    Serial.println(ReceivedData,HEX);
-  }
-  
-  digitalWrite(slaveSelectPin,HIGH);
- }
+ADF7030 adf7030;
 
  
 void setup() {
@@ -70,7 +31,9 @@ void setup() {
 
 int Data = 0;
 void loop() {
-/*
+
+  //adf7030.Configure_ADF7030();
+
  
   digitalWrite(slaveSelectPin, LOW);
   Data = SPI.transfer(0b00111000);
@@ -80,27 +43,33 @@ void loop() {
   Serial.println(Data,HEX); 
   Data = SPI.transfer(0x00);
   Serial.println(Data,HEX);
-  Data = SPI.transfer(0x05);
+  Data = SPI.transfer(0x0A);
   Serial.println(Data,HEX); 
-  Data = SPI.transfer(0x48);
+  Data = SPI.transfer(0xF0);
   Serial.println(Data,HEX);
 
-  Data = SPI.transfer(0x00);
+  Data = SPI.transfer(0x01);
   Serial.println(Data,HEX); 
-  Data = SPI.transfer(0x01 );
+  Data = SPI.transfer(0xBE);
   Serial.println(Data,HEX);
-  Data = SPI.transfer(0x00);
+  Data = SPI.transfer(0xCD);
   Serial.println(Data,HEX); 
-  Data = SPI.transfer(0x00);
+  Data = SPI.transfer(0xDE);
   Serial.println(Data,HEX);
-digitalWrite(slaveSelectPin, HIGH);
+  Data = SPI.transfer(0x02);
+  Serial.println(Data,HEX); 
+  Data = SPI.transfer(0xBD);
+  Serial.println(Data,HEX);
+  Data = SPI.transfer(0xF0);
+  Serial.println(Data,HEX); 
+  Data = SPI.transfer(0xFF);
+  Serial.println(Data,HEX);
+  
+  digitalWrite(slaveSelectPin, HIGH);
   
 
-  digitalWrite(slaveSelectPin, LOW);
-  SPI.transfer(0x82);
-  digitalWrite(slaveSelectPin, HIGH);
 
-  Read_Register(0x400042B4,1);
+  adf7030.Read_Register(0x20000AF0,1);
 
   delay(100);
 
@@ -110,12 +79,17 @@ digitalWrite(slaveSelectPin, HIGH);
   
   
 
-  Read_Register(0x400042B4,1);*/
+  //adf7030.Read_Register(0x400042B4,1);
 
-  Read_Register(0x20000500,1);
+  adf7030.Read_Register(0x20000AF0,1);
+  
+  adf7030.Power_Up_From_Cold();
+  adf7030.Configure_ADF7030();
+  adf7030.Go_To_PHY_ON();
+  adf7030.Transmit();
 
+  adf7030.Read_Register(0x20000AF0,1);
 
-//Read_Register(0x200002F4,1);
 while(1){
   
   

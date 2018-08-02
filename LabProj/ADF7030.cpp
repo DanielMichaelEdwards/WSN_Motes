@@ -48,14 +48,12 @@ void ADF7030::Poll_Status_Byte (int bit2, int bit1)
  {
     receivedVal = SPI.transfer(0xFF);
 
-    CMD_Ready = bitRead(receivedVal,5);
     Idle_State_1 = bitRead(receivedVal,1);
     Idle_State_2 = bitRead(receivedVal,2);
   
-    while(CMD_Ready == 0 || Idle_State_2 ==bit2 || Idle_State_1 == bit1)
+    while( Idle_State_2 !=bit2 || Idle_State_1 != bit1)
     {
       receivedVal = SPI.transfer(0xFF);
-      CMD_Ready = bitRead(receivedVal,5);
       Idle_State_1 = bitRead(receivedVal,1);
       Idle_State_2 = bitRead(receivedVal,2);
     }
@@ -63,11 +61,9 @@ void ADF7030::Poll_Status_Byte (int bit2, int bit1)
 
 void ADF7030::Power_Up_From_Cold() {
 
-  
   digitalWrite(slaveSelectPin, LOW);
 
   receivedVal = SPI.transfer(0xFF);
-  //Serial.println(receivedVal,HEX);
 
   while (digitalRead(12) == 0)
   {
@@ -79,15 +75,8 @@ void ADF7030::Power_Up_From_Cold() {
   digitalWrite(slaveSelectPin, LOW);
 
   Poll_Status_Byte(1,0);
-
-  Serial.print(CMD_Ready);
-  Serial.print("\t");
-  Serial.print(Idle_State_2);
-  Serial.println(Idle_State_1);
-
-  
+ 
   digitalWrite(slaveSelectPin, HIGH);
-  
 }
 
 void ADF7030::Wait_For_CMD_Ready ()
@@ -121,7 +110,7 @@ void ADF7030::Configure_ADF7030 () {
   Serial.println(Idle_State_1);
   digitalWrite(slaveSelectPin, HIGH);
 
-  Read_Register(0x20000514,2);
+  Read_Register(0x20000514,1);
 }
 
 void ADF7030::Go_To_PHY_ON()
@@ -131,6 +120,7 @@ void ADF7030::Go_To_PHY_ON()
   Wait_For_CMD_Ready();
   Poll_Status_Byte(1,0);
   digitalWrite(slaveSelectPin, HIGH);
+  Read_Register(0x400042B4,1);
 }
 void ADF7030::Go_To_PHY_OFF()
 {
@@ -143,13 +133,18 @@ void ADF7030::Go_To_PHY_OFF()
 
 
 void ADF7030::Transmit() {
+  Serial.println("Start Transmission");
   digitalWrite(slaveSelectPin, LOW);
   receivedVal = SPI.transfer(0x84);//Go to PHY_TX state
+  digitalWrite(slaveSelectPin, HIGH);
+
+  digitalWrite(slaveSelectPin, LOW);
   Wait_For_CMD_Ready();
   Poll_Status_Byte(0,1);
   //Need IRQ events
   Poll_Status_Byte(1,0);
   digitalWrite(slaveSelectPin, HIGH);
+  Serial.println("Transmission Completed");
 }
 
 void ADF7030::Receive(uint32_t Address, int Iterations) {
