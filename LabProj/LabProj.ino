@@ -5,6 +5,9 @@
 // set pin 10 as the slave select for the Transceiver:
 const int slaveSelectPin = 10;
 
+
+
+
  void Read_Register(uint32_t Address, int Iterations){
 
   uint8_t AddressArray[4];
@@ -67,7 +70,7 @@ void setup() {
 
 int Data = 0;
 void loop() {
-
+/*
  
   digitalWrite(slaveSelectPin, LOW);
   Data = SPI.transfer(0b00111000);
@@ -107,15 +110,16 @@ digitalWrite(slaveSelectPin, HIGH);
   
   
 
-  Read_Register(0x400042B4,1);
+  Read_Register(0x400042B4,1);*/
 
-  Read_Register(0x20000548,1);
+  Read_Register(0x20000500,1);
 
 
 //Read_Register(0x200002F4,1);
 while(1){
   
   
-  Read_Register(0x400042B4,1);
-  delay(1000);}
+  //Read_Register(0x400042B4,1);
+  //delay(1000);}
+}
 }

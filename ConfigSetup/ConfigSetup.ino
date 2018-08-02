@@ -1,10 +1,11 @@
 // inslude the SPI library:
 #include <SPI.h>
-
+#include "ADF7030.h"
 const uint8_t Radio_Memory_Configuration[ ] = { 
-  #include "C:\Users\95ry9\Documents\Varsity\Fourth_Year\ELEN4002_Lab_Proj\WSN_Motes\ConfigSetup\New.cfg" 
+  #include "C:\Users\Daniel\Documents\Daniel\Varsity\4th Year\Lab Project\Arduino Code\WSN_Motes\ConfigSetup\New.cfg" 
   };
 
+ADF7030 adf7030;
 
 const int Size_OF = sizeof(Radio_Memory_Configuration);
 
@@ -15,50 +16,6 @@ const int slaveSelectPin = 10;
 int x =0;
 
 int receivedVal = 0;
-
-int CMD_Ready = 0;
-
-int Idle_State_1 = 0;
-int Idle_State_2 = 0;
-
-void Read_Register(uint32_t Address, int Iterations){
-
-  uint8_t AddressArray[4];
-  int ReceivedData = 0;
-  AddressArray[0] = Address >> 24;
-  AddressArray[1] = Address >> 16;
-  AddressArray[2] = Address >>  8;
-  AddressArray[3] = Address;
-
-  digitalWrite(slaveSelectPin, LOW);
-
-  Serial.println("Status:");
-  
-  ReceivedData = SPI.transfer(0b01111000);
-  Serial.println(ReceivedData,HEX);
-
-  for(int i=0;i<4;i++)
-  {
-    ReceivedData = SPI.transfer(AddressArray[i]);
-    Serial.println(ReceivedData,HEX);
-  }
-
-  ReceivedData = SPI.transfer(0xFF);
-  Serial.println(ReceivedData,HEX);
-  ReceivedData = SPI.transfer(0xFF);
-  Serial.println(ReceivedData,HEX);
-
-  Serial.println("");
-  Serial.println("Register Data:");
-  
-  for(int j=0; j< Iterations*4;j++)
-  {
-    ReceivedData = SPI.transfer(0xFF);
-    Serial.println(ReceivedData,HEX);
-  }
-  
-  digitalWrite(slaveSelectPin,HIGH);
- }
 
 void setup() {
   // set the slaveSelectPin as an output:
@@ -78,42 +35,7 @@ void loop() {
 ///////////////////////////////////////////////////
   //Start of Powerup From Cold sequence
 //////////////////////////////////////////////////
-  
-  digitalWrite(slaveSelectPin, LOW);
-
-  receivedVal = SPI.transfer(0xFF);
-  //Serial.println(receivedVal,HEX);
-
-  while (digitalRead(12) == 0)
-  {
-    receivedVal = SPI.transfer(0xFF);
-    Serial.println("MISO is Low");
-  }
-
-  digitalWrite(slaveSelectPin, HIGH);
-  digitalWrite(slaveSelectPin, LOW);
-
-  receivedVal = SPI.transfer(0xFF);
-
-  CMD_Ready = bitRead(receivedVal,5);
-  Idle_State_1 = bitRead(receivedVal,1);
-  Idle_State_2 = bitRead(receivedVal,2);
-
-  while(CMD_Ready == 0 || Idle_State_2 ==0 || Idle_State_1 == 1)
-  {
-    receivedVal = SPI.transfer(0xFF);
-    CMD_Ready = bitRead(receivedVal,5);
-    Idle_State_1 = bitRead(receivedVal,1);
-    Idle_State_2 = bitRead(receivedVal,2);
-  }
-
-  Serial.print(CMD_Ready);
-  Serial.print("\t");
-  Serial.print(Idle_State_2);
-  Serial.println(Idle_State_1);
-
-  
-  digitalWrite(slaveSelectPin, HIGH);
+  adf7030.Power_Up_From_Cold();
 ////////////////////////////////////////////
   //End Of Power starteup sequence
 /////////////////////////////////////////////
@@ -159,44 +81,7 @@ void loop() {
   Serial.println(Value,HEX);
   //count = Size_OF;
   }
-  digitalWrite(slaveSelectPin, LOW);
-  receivedVal = SPI.transfer(0b10000101);
-  Serial.println(receivedVal,HEX);
-  digitalWrite(slaveSelectPin, HIGH);
-
-  digitalWrite(slaveSelectPin, LOW);
-
-  receivedVal = SPI.transfer(0xFF);
-
-  CMD_Ready = bitRead(receivedVal,5);
-
-  while(CMD_Ready == 0)
-  {
-    receivedVal = SPI.transfer(0xFF);
-    CMD_Ready = bitRead(receivedVal,5);
-  }
-
-  receivedVal = SPI.transfer(0xFF);
-
-  CMD_Ready = bitRead(receivedVal,5);
-  Idle_State_1 = bitRead(receivedVal,1);
-  Idle_State_2 = bitRead(receivedVal,2);
-
-  while(CMD_Ready == 0 || Idle_State_2 ==0 || Idle_State_1 == 1)
-  {
-    receivedVal = SPI.transfer(0xFF);
-    CMD_Ready = bitRead(receivedVal,5);
-    Idle_State_1 = bitRead(receivedVal,1);
-    Idle_State_2 = bitRead(receivedVal,2);
-  }
-
-  Serial.print(CMD_Ready);
-  Serial.print("\t");
-  Serial.print(Idle_State_2);
-  Serial.println(Idle_State_1);
+  adf7030.Configure_ADF7030();
   x++;
-  digitalWrite(slaveSelectPin, HIGH);
-
-  Read_Register(0x20000514,2);
   }
 }
