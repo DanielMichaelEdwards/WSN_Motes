@@ -33,7 +33,7 @@ int Data = 0;
 void loop() {
 
   //adf7030.Configure_ADF7030();
-
+/*
  
   digitalWrite(slaveSelectPin, LOW);
   Data = SPI.transfer(0b00111000);
@@ -66,7 +66,7 @@ void loop() {
   Serial.println(Data,HEX);
   
   digitalWrite(slaveSelectPin, HIGH);
-  
+  */
 
 
   adf7030.Read_Register(0x20000AF0,1);
@@ -88,7 +88,7 @@ void loop() {
   adf7030.Go_To_PHY_ON();
   adf7030.Transmit();
 
-  adf7030.Read_Register(0x20000AF0,1);
+  adf7030.Read_Register(0x20000514,1);
 
 while(1){
   
