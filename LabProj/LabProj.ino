@@ -1,52 +1,10 @@
 // inslude the SPI library:
 #include <SPI.h>
 #include <stdint.h>
-
+#include "ADF7030.h"
 // set pin 10 as the slave select for the Transceiver:
 const int slaveSelectPin = 10;
-
-
-
-
- void Read_Register(uint32_t Address, int Iterations){
-
-  uint8_t AddressArray[4];
-  int ReceivedData = 0;
-  AddressArray[0] = Address >> 24;
-  AddressArray[1] = Address >> 16;
-  AddressArray[2] = Address >>  8;
-  AddressArray[3] = Address;
-
-  digitalWrite(slaveSelectPin, LOW);
-
-  Serial.println("Status:");
-  
-  ReceivedData = SPI.transfer(0b01111000);
-  Serial.println(ReceivedData,HEX);
-
-  for(int i=0;i<4;i++)
-  {
-    ReceivedData = SPI.transfer(AddressArray[i]);
-    Serial.println(ReceivedData,HEX);
-  }
-
-  ReceivedData = SPI.transfer(0xFF);
-  Serial.println(ReceivedData,HEX);
-  ReceivedData = SPI.transfer(0xFF);
-  Serial.println(ReceivedData,HEX);
-
-  Serial.println("");
-  Serial.println("Register Data:");
-  
-  for(int j=0; j< Iterations*4;j++)
-  {
-    ReceivedData = SPI.transfer(0xFF);
-    Serial.println(ReceivedData,HEX);
-  }
-  
-  digitalWrite(slaveSelectPin,HIGH);
- }
-
+ADF7030 adf7030;
  
 void setup() {
   // set the slaveSelectPin as an output:
@@ -111,9 +69,14 @@ digitalWrite(slaveSelectPin, HIGH);
   
 
   Read_Register(0x400042B4,1);*/
-
-  Read_Register(0x20000500,1);
-
+  adf7030.Power_Up_From_Cold();
+  adf7030.Configure_ADF7030();
+  adf7030.Go_To_PHY_ON();
+  adf7030.Read_Register(0x20000514 ,1);
+  Serial.print("Start Receiving\n\n");
+  adf7030.Receive(0x20000C18,1);
+  Serial.print("Finish Receiving\n\n");
+  adf7030.Read_Register(0x20000C18,4);
 
 //Read_Register(0x200002F4,1);
 while(1){
