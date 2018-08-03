@@ -51,11 +51,7 @@ void ADF7030::Poll_Status_Byte (int bit2, int bit1)
     Idle_State_1 = bitRead(receivedVal,1);
     Idle_State_2 = bitRead(receivedVal,2);
   
-<<<<<<< HEAD
-    while(Idle_State_2 != bit2 || Idle_State_1 != bit1)
-=======
     while( Idle_State_2 !=bit2 || Idle_State_1 != bit1)
->>>>>>> f7c1757d30675e131feaa2fe89ea1cce586fbc0f
     {
       receivedVal = SPI.transfer(0xFF);
       Idle_State_1 = bitRead(receivedVal,1);
