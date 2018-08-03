@@ -150,11 +150,21 @@ void ADF7030::Transmit() {
 void ADF7030::Receive(uint32_t Address, int Iterations) {
   digitalWrite(slaveSelectPin, LOW);
   receivedVal = SPI.transfer(0x83);//Go to PHY_RX state
+  digitalWrite(slaveSelectPin, HIGH);
+  digitalWrite(slaveSelectPin, LOW);
   Wait_For_CMD_Ready();
+  Serial.print("Ready to Receive\n\n");
   Poll_Status_Byte(0,1);
+  Serial.print("Waiting for data\n\n");
   //Need IRQ events
   Poll_Status_Byte(1,0);
-  Read_Register(Address, Iterations); 
+  Serial.print("Data Received\n\n");
   digitalWrite(slaveSelectPin, HIGH);
+  Read_Register(Address, Iterations); 
+}
+
+void ADF7030::Read_MISC_FW() {
+
+  Read_Register(0x400042B4,1);
 }
 

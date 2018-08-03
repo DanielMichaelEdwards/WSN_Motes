@@ -12,6 +12,7 @@ class ADF7030 {
     void Power_Up_From_Cold();
     void Wait_For_CMD_Ready ();
     void Configure_ADF7030 ();
+    void Read_MISC_FW();
     void Go_To_PHY_ON();
     void Go_To_PHY_OFF();
     void Transmit();
