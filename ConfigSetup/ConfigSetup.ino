@@ -2,7 +2,7 @@
 #include <SPI.h>
 #include "ADF7030.h"
 const uint8_t Radio_Memory_Configuration[ ] = { 
-  #include "C:\Users\Daniel\Documents\Daniel\Varsity\4th Year\Lab Project\Arduino Code\WSN_Motes\ConfigSetup\New.cfg" 
+  #include "C:\Users\95ry9\Documents\Varsity\Fourth_Year\ELEN4002_Lab_Proj\WSN_Motes\ConfigSetup\New.cfg"//"C:\Users\Daniel\Documents\Daniel\Varsity\4th Year\Lab Project\Arduino Code\WSN_Motes\ConfigSetup\New.cfg" 
   };
 
 ADF7030 adf7030;
