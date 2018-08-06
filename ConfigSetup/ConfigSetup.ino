@@ -62,7 +62,6 @@ void loop() {
   {
     long power = pow(256,y)+0.5;
     Value += power*Radio_Memory_Configuration[i];
-    Serial.println(Value);
     y--;
   }
   count = temp;
@@ -70,17 +69,10 @@ void loop() {
   for(int i = count; i< Value;i++)
   {
     receivedVal = SPI.transfer(Radio_Memory_Configuration[i]);
-    Serial.print(receivedVal,HEX);
-    Serial.print("\t");
-    Serial.println(Radio_Memory_Configuration[i],HEX);
   }
 
   digitalWrite(slaveSelectPin, HIGH);
   count = Value;
-  Serial.print("Count \t");
-  Serial.println(count);
-  Serial.println(Value,HEX);
-  //count = Size_OF;
   }
   adf7030.Configure_ADF7030();
   x++;

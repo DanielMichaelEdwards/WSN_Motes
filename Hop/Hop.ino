@@ -61,7 +61,6 @@ void loop() {
   {
     long power = pow(256,y)+0.5;
     Value += power*Radio_Memory_Configuration[i];
-    Serial.println(Value);
     y--;
   }
   count = temp;
@@ -73,10 +72,6 @@ void loop() {
 
   digitalWrite(slaveSelectPin, HIGH);
   count = Value;
-  Serial.print("Count \t");
-  Serial.println(count);
-  Serial.println(Value,HEX);
-  //count = Size_OF;
   }
   adf7030.Configure_ADF7030();
 
@@ -101,7 +96,7 @@ void loop() {
   Data = SPI.transfer(0x47);
   Data = SPI.transfer(0xFC);
   Data = SPI.transfer(0xC0);
-  Data = SPI.transfer(0x00);
+  Data = SPI.transfer(0xEE);
 
   digitalWrite(slaveSelectPin, HIGH);
   digitalWrite(slaveSelectPin, LOW);
@@ -124,7 +119,7 @@ void loop() {
   Serial.println(Data,HEX);
   Data = SPI.transfer(0xCC);
   Serial.println(Data,HEX); 
-  Data = SPI.transfer(0xDD);
+  Data = SPI.transfer(0xAB);
   Serial.println(Data,HEX);
   Data = SPI.transfer(0x02);
   Serial.println(Data,HEX); 
@@ -152,10 +147,11 @@ void loop() {
   {
     Serial.print("Start Receiving\n\n");
     digitalWrite(7, HIGH);
-    adf7030.Receive(0x20000C18,1);
-    digitalWrite(7, LOW);
+    adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
     adf7030.Read_Register(0x20000AF0,1);
+    delay(5000);
+    digitalWrite(7, LOW);
     adf7030.Transmit();
     //Read_Register(0x400042B4,1);
     //delay(1000);}

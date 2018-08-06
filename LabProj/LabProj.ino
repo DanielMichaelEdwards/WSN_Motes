@@ -103,23 +103,14 @@ void loop() {
   adf7030.Go_To_PHY_ON();
   adf7030.Read_Register(0x20000500,1);
   adf7030.Read_Register(0x20000514,2);
-  Serial.print("Start Receiving\n\n");
   //digitalWrite(7, HIGH);
-  adf7030.Receive(0x20000C18,1);
+  adf7030.Receive(0x20000C18,2);
+  //digitalWrite(7, LOW);
+  //digitalWrite(7, HIGH);
+  adf7030.Receive(0x20000C18,2);
   //digitalWrite(7, LOW);
   Serial.print("Finish Receiving\n\n");
-    Serial.print("Start Receiving\n\n");
-  //digitalWrite(7, HIGH);
-  adf7030.Receive(0x20000C18,4);
-  //digitalWrite(7, LOW);
-  Serial.print("Finish Receiving\n\n");
-
-  
-  
-  adf7030.Read_Register(0x20000C18,4);
-  adf7030.Read_Register(0x20000508 ,1);
-  adf7030.Read_Register(0x20000510 ,1);
-  //adf7030.Read_Register(0x400042B4,1);
+  adf7030.Read_Register(0x20000C18,2);
 
   /*adf7030.Read_Register(0x20000AF0,1);
   
