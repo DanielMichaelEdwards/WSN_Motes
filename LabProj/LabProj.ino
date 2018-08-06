@@ -10,6 +10,7 @@ ADF7030 adf7030;
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
+  pinMode(7,OUTPUT);
   digitalWrite(slaveSelectPin, HIGH);
   Serial.begin(2400);
   // initialize SPI:
@@ -31,10 +32,30 @@ int Data = 0;
 void loop() {
 
   //adf7030.Configure_ADF7030();
-/*
+
  
-  digitalWrite(slaveSelectPin, LOW);
+  /*digitalWrite(slaveSelectPin, LOW);
   Data = SPI.transfer(0b00111000);
+  Serial.println(Data,HEX);
+
+  Data = SPI.transfer(0x20);
+  Serial.println(Data,HEX); 
+  Data = SPI.transfer(0x00);
+  Serial.println(Data,HEX);
+  Data = SPI.transfer(0x05);
+  Serial.println(Data,HEX); 
+  Data = SPI.transfer(0x10);
+  Serial.println(Data,HEX);
+  
+  Data = SPI.transfer(0x47);
+  Data = SPI.transfer(0xFC);
+  Data = SPI.transfer(0xC0);
+  Data = SPI.transfer(0x00);
+
+  digitalWrite(slaveSelectPin, HIGH);
+  digitalWrite(slaveSelectPin, LOW);
+
+  Data = SPI.transfer(0b00111000);  
   Serial.println(Data,HEX);
 
   Data = SPI.transfer(0x20);
@@ -45,14 +66,14 @@ void loop() {
   Serial.println(Data,HEX); 
   Data = SPI.transfer(0xF0);
   Serial.println(Data,HEX);
-
-  Data = SPI.transfer(0x01);
+  
+  Data = SPI.transfer(0xAA);
   Serial.println(Data,HEX); 
-  Data = SPI.transfer(0xBE);
+  Data = SPI.transfer(0xBB);
   Serial.println(Data,HEX);
-  Data = SPI.transfer(0xCD);
+  Data = SPI.transfer(0xCC);
   Serial.println(Data,HEX); 
-  Data = SPI.transfer(0xDE);
+  Data = SPI.transfer(0xDD);
   Serial.println(Data,HEX);
   Data = SPI.transfer(0x02);
   Serial.println(Data,HEX); 
@@ -64,33 +85,43 @@ void loop() {
   Serial.println(Data,HEX);
   
   digitalWrite(slaveSelectPin, HIGH);
-  */
 
 
-  adf7030.Read_Register(0x20000AF0,1);
+
+  /*adf7030.Read_Register(0x20000AF0,1);
 
   delay(100);
 
   digitalWrite(slaveSelectPin, LOW);
   SPI.transfer(0x84);
   digitalWrite(slaveSelectPin, HIGH);
-  
+  */
   
 
-
-  Read_Register(0x400042B4,1);*/
   adf7030.Power_Up_From_Cold();
   adf7030.Configure_ADF7030();
   adf7030.Go_To_PHY_ON();
-  adf7030.Read_Register(0x20000514 ,1);
+  adf7030.Read_Register(0x20000500,1);
+  adf7030.Read_Register(0x20000514,2);
   Serial.print("Start Receiving\n\n");
+  //digitalWrite(7, HIGH);
   adf7030.Receive(0x20000C18,1);
+  //digitalWrite(7, LOW);
   Serial.print("Finish Receiving\n\n");
-  adf7030.Read_Register(0x20000C18,4);
+    Serial.print("Start Receiving\n\n");
+  //digitalWrite(7, HIGH);
+  adf7030.Receive(0x20000C18,4);
+  //digitalWrite(7, LOW);
+  Serial.print("Finish Receiving\n\n");
 
+  
+  
+  adf7030.Read_Register(0x20000C18,4);
+  adf7030.Read_Register(0x20000508 ,1);
+  adf7030.Read_Register(0x20000510 ,1);
   //adf7030.Read_Register(0x400042B4,1);
 
-  adf7030.Read_Register(0x20000AF0,1);
+  /*adf7030.Read_Register(0x20000AF0,1);
   
   adf7030.Power_Up_From_Cold();
   adf7030.Configure_ADF7030();
@@ -98,7 +129,7 @@ void loop() {
   adf7030.Transmit();
 
   adf7030.Read_Register(0x20000514,1);
-  //adf7030.Read_Register(0x400042B4,1);
+  //adf7030.Read_Register(0x400042B4,1);*/
 
 while(1)
   {

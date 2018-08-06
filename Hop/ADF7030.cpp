@@ -62,7 +62,6 @@ void ADF7030::Poll_Status_Byte (int bit2, int bit1)
 }
 
 void ADF7030::Power_Up_From_Cold() {
-
   digitalWrite(slaveSelectPin, LOW);
 
   receivedVal = SPI.transfer(0xFF);
@@ -75,8 +74,9 @@ void ADF7030::Power_Up_From_Cold() {
 
   digitalWrite(slaveSelectPin, HIGH);
   digitalWrite(slaveSelectPin, LOW);
-
+  Serial.print("before poll");
   Poll_Status_Byte(1,0);
+  Serial.print("after poll");
  
   digitalWrite(slaveSelectPin, HIGH);
 }
