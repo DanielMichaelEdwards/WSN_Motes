@@ -41,7 +41,6 @@ void ADF7030::Write_To_Register(uint32_t Address, uint8_t Data[])
   Serial.println("\n\n Writing to register...");
   uint8_t AddressArray[4];
   int dataSize = sizeof(Data);
-  Serial.println(dataSize);
   int ReceivedData = 0;
   AddressArray[0] = Address >> 24;
   AddressArray[1] = Address >> 16;
@@ -67,6 +66,22 @@ void ADF7030::Write_To_Register(uint32_t Address, uint8_t Data[])
   
   digitalWrite(slaveSelectPin,HIGH);
   
+}
+
+void ADF7030::Write_Register_Short(uint8_t Pointer, uint8_t Offset, uint8_t Data[], int dataSize)
+{
+  Serial.println("\n\n Writing to register (short) ...");
+  uint8_t cmd = 0b00110100;  
+  cmd += Pointer;
+  int ReceivedData = 0;
+  digitalWrite(slaveSelectPin, LOW);
+  ReceivedData = SPI.transfer(cmd);
+  ReceivedData = SPI.transfer(Offset);
+  for(int j=0; j<dataSize;j++)
+  {
+    ReceivedData = SPI.transfer(Data[j]);
+  } 
+  digitalWrite(slaveSelectPin, HIGH);  
 }
 
 void ADF7030::Poll_Status_Byte (int bit2, int bit1)

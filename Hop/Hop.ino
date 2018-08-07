@@ -74,9 +74,17 @@ void loop() {
   count = Value;
   }
   adf7030.Configure_ADF7030();
-  uint8_t Data[] = {0xAB, 0xDD, 0x01, 0xDF, 0x44, 0x55, 0x66, 0x77};
-  adf7030.Write_To_Register(0x20000514,Data);
-  adf7030.Read_Register(0x20000514, 2);
+  uint8_t Data[] = {0x20, 0x00, 0x0A, 0xF0};
+  adf7030.Write_To_Register(0x40001800,Data);
+  adf7030.Read_Register(0x20000AF0, 2);
+  adf7030.Read_Register(0x20000C18, 2);
+  adf7030.Read_Register(0x40001800, 2);
+  uint8_t Data_new[] = {0x86, 0x45, 0x55, 0x66};
+  adf7030.Write_Register_Short(0b01, 0x02, Data_new,4); 
+  
+  adf7030.Read_Register(0x20000AF0, 2);
+  adf7030.Read_Register(0x40001800, 2);
+  
 
   /////////////////////////////////////
   //Hop Things
@@ -146,8 +154,8 @@ void loop() {
   //adf7030.Read_Register(0x400042B4,1);*/
 
   while(1)
-  {
-    /*Serial.print("Start Receiving\n\n");
+  {/*
+    Serial.print("Start Receiving\n\n");
     digitalWrite(7, HIGH);
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
