@@ -74,13 +74,15 @@ void loop() {
   count = Value;
   }
   adf7030.Configure_ADF7030();
-
+  uint8_t Data[] = {0xAB, 0xDD, 0x01, 0xDF, 0x44, 0x55, 0x66, 0x77};
+  adf7030.Write_To_Register(0x20000514,Data);
+  adf7030.Read_Register(0x20000514, 2);
 
   /////////////////////////////////////
   //Hop Things
   ////////////////////////////////////
 
-  digitalWrite(slaveSelectPin, LOW);
+  /*digitalWrite(slaveSelectPin, LOW);
   Data = SPI.transfer(0b00111000);
   Serial.println(Data,HEX);
 
@@ -141,11 +143,11 @@ void loop() {
 
 
   //adf7030.Read_Register(0x20000514,1);
-  //adf7030.Read_Register(0x400042B4,1);
+  //adf7030.Read_Register(0x400042B4,1);*/
 
   while(1)
   {
-    Serial.print("Start Receiving\n\n");
+    /*Serial.print("Start Receiving\n\n");
     digitalWrite(7, HIGH);
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
@@ -154,7 +156,7 @@ void loop() {
     digitalWrite(7, LOW);
     adf7030.Transmit();
     //Read_Register(0x400042B4,1);
-    //delay(1000);}
+    //delay(1000);}*/
   }
 
 

@@ -8,6 +8,7 @@ class ADF7030 {
   public:
     ADF7030();
     void Read_Register(uint32_t Address, int Iterations);
+    void Write_To_Register(uint32_t Address, uint8_t Data[]);
     void Poll_Status_Byte(int bit2, int bit1);
     void Power_Up_From_Cold();
     void Wait_For_CMD_Ready ();

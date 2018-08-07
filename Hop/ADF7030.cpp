@@ -7,6 +7,7 @@ ADF7030::ADF7030() {
 
 void ADF7030::Read_Register(uint32_t Address, int Iterations){
 
+  Serial.println("\n\n Reading register...");
   uint8_t AddressArray[4];
   int ReceivedData = 0;
   AddressArray[0] = Address >> 24;
@@ -17,7 +18,7 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
   digitalWrite(slaveSelectPin, LOW);
   
   ReceivedData = SPI.transfer(0b01111000);
-
+  Serial.println("Registers data");
   for(int i=0;i<4;i++)
   {
     ReceivedData = SPI.transfer(AddressArray[i]);
@@ -26,8 +27,6 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
   ReceivedData = SPI.transfer(0xFF);
   ReceivedData = SPI.transfer(0xFF);
   
-  Serial.println("\n\n Register Data:");
-  
   for(int j=0; j< Iterations*4;j++)
   {
     ReceivedData = SPI.transfer(0xFF);
@@ -35,7 +34,40 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
   }
   
   digitalWrite(slaveSelectPin,HIGH);
- }
+}
+
+void ADF7030::Write_To_Register(uint32_t Address, uint8_t Data[])
+{
+  Serial.println("\n\n Writing to register...");
+  uint8_t AddressArray[4];
+  int dataSize = sizeof(Data);
+  Serial.println(dataSize);
+  int ReceivedData = 0;
+  AddressArray[0] = Address >> 24;
+  AddressArray[1] = Address >> 16;
+  AddressArray[2] = Address >>  8;
+  AddressArray[3] = Address;
+
+  digitalWrite(slaveSelectPin, LOW);
+  
+  ReceivedData = SPI.transfer(0b00111000);
+
+  for(int i=0;i<4;i++)
+  {
+    ReceivedData = SPI.transfer(AddressArray[i]);
+  }
+  
+  Serial.println("\n\n Register Data:");
+  
+  for(int j=0; j< dataSize*4;j++)
+  {
+    ReceivedData = SPI.transfer(Data[j]);
+    Serial.println(ReceivedData, HEX);
+  }
+  
+  digitalWrite(slaveSelectPin,HIGH);
+  
+}
 
 void ADF7030::Poll_Status_Byte (int bit2, int bit1)
  {
