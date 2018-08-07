@@ -3,11 +3,7 @@
 #include "ADF7030.h"
 const uint8_t Radio_Memory_Configuration[ ] = { 
   //#include "C:\Users\95ry9\Documents\Varsity\Fourth_Year\ELEN4002_Lab_Proj\WSN_Motes\ConfigSetup\IEEE_Packet_Format.cfg"
-<<<<<<< HEAD
   #include "C:\Users\Daniel\Documents\Daniel\Varsity\4th Year\Lab Project\Arduino Code\WSN_Motes\ConfigSetup\IEEE_Packet_Format.cfg" 
-=======
-  //#include "C:\Users\Daniel\Documents\Daniel\Varsity\4th Year\Lab Project\Arduino Code\WSN_Motes\ConfigSetup\IEEE_Packet_Format.cfg" 
->>>>>>> 7893b22ef0a9ba3ff65b91fde264b342ecbcba7e
   };
 
 ADF7030 adf7030;
