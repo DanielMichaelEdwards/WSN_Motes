@@ -9,7 +9,7 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
 
   Serial.println("\n\n Reading register...");
   uint8_t AddressArray[4];
-  int ReceivedData = 0;
+  uint8_t ReceivedData = 0;
   AddressArray[0] = Address >> 24;
   AddressArray[1] = Address >> 16;
   AddressArray[2] = Address >>  8;
@@ -36,11 +36,36 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
   digitalWrite(slaveSelectPin,HIGH);
 }
 
-void ADF7030::Write_To_Register(uint32_t Address, uint8_t Data[])
+void ADF7030::Read_Received(int Iterations, uint8_t RegisterData[]) 
+{
+  
+  Serial.println("\n\n Reading received register...");
+  uint8_t AddressArray[] = {0x20, 0x00, 0x0C, 0x18};
+  uint8_t ReceivedData = 0;
+
+  digitalWrite(slaveSelectPin, LOW);
+  
+  ReceivedData = SPI.transfer(0b01111000);
+  for(int i=0;i<4;i++)
+  {
+    ReceivedData = SPI.transfer(AddressArray[i]);
+  }
+
+  ReceivedData = SPI.transfer(0xFF);
+  ReceivedData = SPI.transfer(0xFF);
+  
+  for(int j=0; j< Iterations*4;j++)
+  {
+    RegisterData[j] = SPI.transfer(0xFF);
+  }
+  
+  digitalWrite(slaveSelectPin,HIGH);
+}
+
+void ADF7030::Write_To_Register(uint32_t Address, uint8_t Data[], int dataSize)
 {
   Serial.println("\n\n Writing to register...");
   uint8_t AddressArray[4];
-  int dataSize = sizeof(Data);
   int ReceivedData = 0;
   AddressArray[0] = Address >> 24;
   AddressArray[1] = Address >> 16;
@@ -145,7 +170,7 @@ void ADF7030::Configure_ADF7030 () {
   Poll_Status_Byte(1,0);
   digitalWrite(slaveSelectPin, HIGH);
 
-  Read_Register(0x20000514,2);
+  //Read_Register(0x20000514,2);
 }
 
 void ADF7030::Go_To_PHY_ON()
@@ -156,7 +181,7 @@ void ADF7030::Go_To_PHY_ON()
   Wait_For_CMD_Ready();
   Poll_Status_Byte(1,0);
   digitalWrite(slaveSelectPin, HIGH);
-  Read_Register(0x400042B4,1);
+  //Read_Register(0x400042B4,1);
 }
 void ADF7030::Go_To_PHY_OFF()
 {
@@ -199,11 +224,11 @@ void ADF7030::Receive(uint32_t Address, int Iterations) {
   Poll_Status_Byte(1,0);
   Serial.print("\n\n Data Received.");
   digitalWrite(slaveSelectPin, HIGH);
-  Read_Register(Address, Iterations); 
+  //Read_Register(Address, Iterations); 
 
 }
 
 void ADF7030::Read_MISC_FW() {
-  Read_Register(0x400042B4,1);
+  //Read_Register(0x400042B4,1);
 }
 

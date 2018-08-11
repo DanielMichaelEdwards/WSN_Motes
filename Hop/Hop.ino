@@ -14,13 +14,16 @@ const int Size_OF = sizeof(Radio_Memory_Configuration);
 const int slaveSelectPin = 10;
 //const int checking = 12;
 
-
+uint8_t myAddrIndex = 1;
+uint8_t routes[3][2] = {{0x00, 0x01},{0x01,0x02},{0x02,0x03}};
 int receivedVal = 0;
 
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
+  pinMode(6, OUTPUT);
   pinMode(7, OUTPUT);
+  pinMode(8, OUTPUT);
   digitalWrite(slaveSelectPin, HIGH);
   Serial.begin(2400);
   // initialize SPI:
@@ -73,100 +76,80 @@ void loop() {
   digitalWrite(slaveSelectPin, HIGH);
   count = Value;
   }
-  adf7030.Configure_ADF7030();
-  uint8_t Data[] = {0x20, 0x00, 0x0A, 0xF0};
-  adf7030.Write_To_Register(0x40001800,Data);
-  adf7030.Read_Register(0x20000AF0, 2);
-  adf7030.Read_Register(0x20000C18, 2);
-  adf7030.Read_Register(0x40001800, 2);
-  uint8_t Data_new[] = {0x86, 0x45, 0x55, 0x66};
-  adf7030.Write_Register_Short(0b01, 0x02, Data_new,4); 
-  
-  adf7030.Read_Register(0x20000AF0, 2);
-  adf7030.Read_Register(0x40001800, 2);
-  
+  adf7030.Configure_ADF7030();  
 
   /////////////////////////////////////
   //Hop Things
   ////////////////////////////////////
+  uint8_t Data[] = {0x20, 0x00, 0x0A, 0xF0};
+  adf7030.Write_To_Register(0x40001800,Data,1);
+  adf7030.Read_Register(0x40001800,1);
+  uint8_t Header_Data[] = {0x03, 0x02, 0x01,0x00};
+  adf7030.Write_Register_Short(0b01, 0x00, Header_Data, 4);
+  adf7030.Read_Register(0x20000AF0,2);
+  uint8_t registerData[4];
+  adf7030.Read_Received(1, registerData);
+  adf7030.Read_Register(0x20000C18,2);
+  Serial.println(registerData[0], HEX);
+  /*uint8_t Data[] = {0x47, 0xFC, 0xC0, 0xEE};
+  adf7030.Write_To_Register(0x20000510, Data,1);
 
-  /*digitalWrite(slaveSelectPin, LOW);
-  Data = SPI.transfer(0b00111000);
-  Serial.println(Data,HEX);
+  uint8_t TX[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xAA, 0xBB, 0xCC, 0xDD};
+  adf7030.Write_To_Register(0x20000AF0, TX,2);
 
-  Data = SPI.transfer(0x20);
-  Serial.println(Data,HEX); 
-  Data = SPI.transfer(0x00);
-  Serial.println(Data,HEX);
-  Data = SPI.transfer(0x05);
-  Serial.println(Data,HEX); 
-  Data = SPI.transfer(0x10);
-  Serial.println(Data,HEX);
-  
-  Data = SPI.transfer(0x47);
-  Data = SPI.transfer(0xFC);
-  Data = SPI.transfer(0xC0);
-  Data = SPI.transfer(0xEE);
-
-  digitalWrite(slaveSelectPin, HIGH);
-  digitalWrite(slaveSelectPin, LOW);
-
-  Data = SPI.transfer(0b00111000);  
-  Serial.println(Data,HEX);
-
-  Data = SPI.transfer(0x20);
-  Serial.println(Data,HEX); 
-  Data = SPI.transfer(0x00);
-  Serial.println(Data,HEX);
-  Data = SPI.transfer(0x0A);
-  Serial.println(Data,HEX); 
-  Data = SPI.transfer(0xF0);
-  Serial.println(Data,HEX);
-  
-  Data = SPI.transfer(0xAA);
-  Serial.println(Data,HEX); 
-  Data = SPI.transfer(0xBB);
-  Serial.println(Data,HEX);
-  Data = SPI.transfer(0xCC);
-  Serial.println(Data,HEX); 
-  Data = SPI.transfer(0xAB);
-  Serial.println(Data,HEX);
-  Data = SPI.transfer(0x02);
-  Serial.println(Data,HEX); 
-  Data = SPI.transfer(0xBD);
-  Serial.println(Data,HEX);
-  Data = SPI.transfer(0xF0);
-  Serial.println(Data,HEX); 
-  Data = SPI.transfer(0xFF);
-  Serial.println(Data,HEX);
-  
-  digitalWrite(slaveSelectPin, HIGH);  
   adf7030.Configure_ADF7030();
 
   
   Serial.print("ADF7030 configured.");
   adf7030.Go_To_PHY_ON();
   adf7030.Read_Register(0x20000500,1);
-  adf7030.Read_Register(0x20000514,2);
+  adf7030.Read_Register(0x20000514,2);*/
 
 
   //adf7030.Read_Register(0x20000514,1);
-  //adf7030.Read_Register(0x400042B4,1);*/
+  //adf7030.Read_Register(0x400042B4,1);
 
   while(1)
-  {/*
+  {
     Serial.print("Start Receiving\n\n");
-    digitalWrite(7, HIGH);
+    
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
     adf7030.Read_Register(0x20000AF0,1);
-    delay(5000);
-    digitalWrite(7, LOW);
-    adf7030.Transmit();
+    uint8_t registerData[4];
+    adf7030.Read_Received(1, registerData);
+    if (registerData[2] == routes[myAddrIndex][0])
+    {
+      //I need to do something with this information
+      if (registerData[3] == routes[myAddrIndex][0])
+      {
+        //This data is for me!
+        digitalWrite(7, HIGH);
+        delay(1000);
+        digitalWrite(7, LOW);
+      }
+      else 
+      {      
+        //I was meant to receive this, but I must retransmit it.
+        digitalWrite(8, HIGH);
+        adf7030.Write_To_Register(0x20000AF0, registerData,1);
+        uint8_t addrInfo[2] = {routes[myAddrIndex][1],routes[myAddrIndex][0]};
+        adf7030.Write_Register_Short(0b01, 0x01, addrInfo, 2);
+        delay(5000);
+        adf7030.Transmit();
+        digitalWrite(8, LOW);
+      }
+    }
+    else {
+      //I received it but don't do anything with it.
+      digitalWrite(6,HIGH);
+      delay(1000);
+      digitalWrite(6, LOW);
+    }
+    }
+        
+    
     //Read_Register(0x400042B4,1);
-    //delay(1000);}*/
-  }
+    //delay(1000);}
+}  
 
-
-  
-}
