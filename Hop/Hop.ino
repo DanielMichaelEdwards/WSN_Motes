@@ -41,7 +41,7 @@ void loop() {
 //////////////////////////////////////////////////
   //adf7030.Power_Up_From_Cold();
 ////////////////////////////////////////////
-  //End Of Power starteup sequence
+  //End Of Power start up sequence
 /////////////////////////////////////////////
 
 
@@ -91,27 +91,10 @@ void loop() {
   adf7030.Read_Received(1, registerData);
   adf7030.Read_Register(0x20000C18,2);
   Serial.println(registerData[0], HEX);
-  /*uint8_t Data[] = {0x47, 0xFC, 0xC0, 0xEE};
-  adf7030.Write_To_Register(0x20000510, Data,1);
-
-  uint8_t TX[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xAA, 0xBB, 0xCC, 0xDD};
-  adf7030.Write_To_Register(0x20000AF0, TX,2);
-
-  adf7030.Configure_ADF7030();
-
-  
-  Serial.print("ADF7030 configured.");
-  adf7030.Go_To_PHY_ON();
-  adf7030.Read_Register(0x20000500,1);
-  adf7030.Read_Register(0x20000514,2);*/
-
-
-  //adf7030.Read_Register(0x20000514,1);
-  //adf7030.Read_Register(0x400042B4,1);
 
   while(1)
   {
-    Serial.print("Start Receiving\n\n");
+    /*Serial.print("Start Receiving\n\n");
     
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
@@ -129,15 +112,17 @@ void loop() {
         digitalWrite(7, LOW);
       }
       else 
-      {      
-        //I was meant to receive this, but I must retransmit it.
+      { */     
+        //I was meant to receive this, but I must forward it.
         digitalWrite(8, HIGH);
         adf7030.Write_To_Register(0x20000AF0, registerData,1);
-        uint8_t addrInfo[2] = {routes[myAddrIndex][1],routes[myAddrIndex][0]};
-        adf7030.Write_Register_Short(0b01, 0x01, addrInfo, 2);
+        adf7030.Read_Register(0x20000AF0,2);
+        uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][1],routes[myAddrIndex][0], registerData[0]};
+        adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
+        adf7030.Read_Register(0x20000AF0,2);
         delay(5000);
         adf7030.Transmit();
-        digitalWrite(8, LOW);
+        digitalWrite(8, LOW);/*
       }
     }
     else {
@@ -145,8 +130,8 @@ void loop() {
       digitalWrite(6,HIGH);
       delay(1000);
       digitalWrite(6, LOW);
-    }
-    }
+    }*/
+  }
         
     
     //Read_Register(0x400042B4,1);
