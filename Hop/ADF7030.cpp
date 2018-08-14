@@ -36,6 +36,35 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
   digitalWrite(slaveSelectPin,HIGH);
 }
 
+void ADF7030::Get_Register_Data(uint32_t Address, int Iterations, uint8_t RegisterData[])
+{
+  Serial.println("\n\n Fetching register data...");
+  uint8_t AddressArray[4];
+  uint8_t ReceivedData = 0;
+  AddressArray[0] = Address >> 24;
+  AddressArray[1] = Address >> 16;
+  AddressArray[2] = Address >>  8;
+  AddressArray[3] = Address;
+
+  digitalWrite(slaveSelectPin, LOW);
+  
+  ReceivedData = SPI.transfer(0b01111000);
+  for(int i=0;i<4;i++)
+  {
+    ReceivedData = SPI.transfer(AddressArray[i]);
+  }
+
+  ReceivedData = SPI.transfer(0xFF);
+  ReceivedData = SPI.transfer(0xFF);
+  
+  for(int j=0; j< Iterations*4;j++)
+  {
+    RegisterData[j] = SPI.transfer(0xFF);
+  }
+  
+  digitalWrite(slaveSelectPin,HIGH);
+}
+
 void ADF7030::Read_Received(int Iterations, uint8_t RegisterData[]) 
 {
   
@@ -109,6 +138,27 @@ void ADF7030::Write_Register_Short(uint8_t Pointer, uint8_t Offset, uint8_t Data
   digitalWrite(slaveSelectPin, HIGH);  
 }
 
+float ADF7030::Get_RSSI()
+{
+  Serial.println("\n\n Getting RSSI value...");
+  uint8_t Data_RSSI [4];
+  Get_Register_Data(0x20000538,1, Data_RSSI);
+  uint16_t rssiBin = Data_RSSI[1];
+  rssiBin = rssiBin + (Data_RSSI[0] << 8);
+  uint16_t rssi2s = ~rssiBin;
+  rssi2s = rssi2s + (0b01);
+
+  int num = rssiBin >> 10;
+  
+  float val =  rssi2s - 63488;
+  val *= 0.25;
+
+  if (num == 1)
+  {
+    val *= -1;
+  }
+  return val;
+}
 void ADF7030::Poll_Status_Byte (int bit2, int bit1)
  {
     Serial.println("\n\n Start Polling");
@@ -192,6 +242,8 @@ void ADF7030::Go_To_PHY_OFF()
   Poll_Status_Byte(1,0);
   digitalWrite(slaveSelectPin, HIGH);
 }
+
+
 
 
 void ADF7030::Transmit() {

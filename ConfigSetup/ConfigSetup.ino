@@ -76,5 +76,7 @@ void loop() {
   }
   adf7030.Configure_ADF7030();
   x++;
+  Serial.println("Configured.");
   }
+  
 }

@@ -15,7 +15,7 @@ const int slaveSelectPin = 10;
 //const int checking = 12;
 
 uint8_t myAddrIndex = 1;
-uint8_t routes[3][2] = {{0x00, 0x01},{0x01,0x02},{0x02,0x03}};
+uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
 
 void setup() {
@@ -77,24 +77,27 @@ void loop() {
   count = Value;
   }
   adf7030.Configure_ADF7030();  
-
+  Serial.println("Ready to operate");
   /////////////////////////////////////
   //Hop Things
   ////////////////////////////////////
   uint8_t Data[] = {0x20, 0x00, 0x0A, 0xF0};
   adf7030.Write_To_Register(0x40001800,Data,1);
   adf7030.Read_Register(0x40001800,1);
+  uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
+  adf7030.Write_To_Register(0x20000510, Data_PHR,1);
   uint8_t Header_Data[] = {0x03, 0x02, 0x01,0x00};
   adf7030.Write_Register_Short(0b01, 0x00, Header_Data, 4);
   adf7030.Read_Register(0x20000AF0,2);
   uint8_t registerData[4];
   adf7030.Read_Received(1, registerData);
   adf7030.Read_Register(0x20000C18,2);
+  adf7030.Go_To_PHY_ON();
   Serial.println(registerData[0], HEX);
 
   while(1)
   {
-    /*Serial.print("Start Receiving\n\n");
+    Serial.print("Start Receiving\n\n");
     
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
@@ -112,17 +115,32 @@ void loop() {
         digitalWrite(7, LOW);
       }
       else 
-      { */     
+      {     
         //I was meant to receive this, but I must forward it.
-        digitalWrite(8, HIGH);
-        adf7030.Write_To_Register(0x20000AF0, registerData,1);
-        adf7030.Read_Register(0x20000AF0,2);
-        uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][1],routes[myAddrIndex][0], registerData[0]};
-        adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
-        adf7030.Read_Register(0x20000AF0,2);
-        delay(5000);
-        adf7030.Transmit();
-        digitalWrite(8, LOW);/*
+        if (registerData[3] == routes[0][0])
+        {
+          //This data is going to the central node (forward direction).
+          digitalWrite(8, HIGH);
+          adf7030.Write_To_Register(0x20000AF0, registerData,1);
+          adf7030.Read_Register(0x20000AF0,2);
+          uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][1],routes[myAddrIndex][0], registerData[0]};
+          adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
+          adf7030.Read_Register(0x20000AF0,2);
+          adf7030.Transmit();
+          digitalWrite(8, LOW);
+        }
+        else 
+        {
+          //This data is going away from the central node (backward direction).
+          digitalWrite(8, HIGH);
+          adf7030.Write_To_Register(0x20000AF0, registerData,1);
+          adf7030.Read_Register(0x20000AF0,2);
+          uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][2],routes[myAddrIndex][0], registerData[0]};
+          adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
+          adf7030.Read_Register(0x20000AF0,2);
+          adf7030.Transmit();
+          digitalWrite(8, LOW);
+        }     
       }
     }
     else {
@@ -130,11 +148,7 @@ void loop() {
       digitalWrite(6,HIGH);
       delay(1000);
       digitalWrite(6, LOW);
-    }*/
-  }
-        
-    
-    //Read_Register(0x400042B4,1);
-    //delay(1000);}
+    }
+  }  
 }  
 
