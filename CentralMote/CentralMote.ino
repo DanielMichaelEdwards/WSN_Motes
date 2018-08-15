@@ -1,0 +1,163 @@
+// inslude the SPI library:
+#include <SPI.h>
+#include <stdint.h>
+#include "ADF7030.h"
+const uint8_t Radio_Memory_Configuration[ ] = { 
+  //#include "C:\Users\95ry9\Documents\Varsity\Fourth_Year\ELEN4002_Lab_Proj\WSN_Motes\ConfigSetup\IEEE_Packet_Format.cfg"
+  #include "C:\Users\Daniel\Documents\Daniel\Varsity\4th Year\Lab Project\Arduino Code\WSN_Motes\Hop\IEEE_Packet_Format.cfg" 
+  };
+
+ADF7030 adf7030;
+
+const int Size_OF = sizeof(Radio_Memory_Configuration);
+
+// set pin 10 as the slave select for the digital pot:
+const int slaveSelectPin = 10;
+//const int checking = 12;
+
+uint8_t minerAddr = 0xFF;
+uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
+int receivedVal = 0;
+void setup() {
+  // set the slaveSelectPin as an output:
+  pinMode(slaveSelectPin, OUTPUT);
+  pinMode(7,OUTPUT);
+  digitalWrite(slaveSelectPin, HIGH);
+  Serial.begin(2400);
+  // initialize SPI:
+  SPI.begin();
+  SPI.setClockDivider(SPI_CLOCK_DIV64);
+  SPI.setDataMode(SPI_MODE0);
+  SPI.setBitOrder(MSBFIRST);
+
+
+  //Set Transceiver as SLave active
+  digitalWrite(slaveSelectPin, LOW);
+  //Run the configuration
+  SPI.transfer(0b10000101); 
+  //Disbale Transceiver as Slave
+  digitalWrite(slaveSelectPin, HIGH);
+}
+
+int Data = 0;
+void loop() {
+
+    Serial.print("ADF7030 is configuring...");
+///////////////////////////////////////////////////
+  //Start of Powerup From Cold sequence
+//////////////////////////////////////////////////
+  //adf7030.Power_Up_From_Cold();
+////////////////////////////////////////////
+  //End Of Power start up sequence
+/////////////////////////////////////////////
+
+
+///////////////////////////////////////////
+//Start of Config Sequence
+/////////////////////////////////////////
+  
+  
+  int temp = 0;
+  long Value = 0;
+  int count = 0;
+  int y =0;
+  
+  while (count < Size_OF)
+  {
+    digitalWrite(slaveSelectPin, LOW);
+    temp = count +3;
+    y = 2;
+  for(int i = count; i<temp;i++)
+  {
+    long power = pow(256,y)+0.5;
+    Value += power*Radio_Memory_Configuration[i];
+    y--;
+  }
+  count = temp;
+
+  for(int i = count; i< Value;i++)
+  {
+    receivedVal = SPI.transfer(Radio_Memory_Configuration[i]);
+  }
+
+  digitalWrite(slaveSelectPin, HIGH);
+  count = Value;
+  }
+  adf7030.Configure_ADF7030();  
+  Serial.println("Ready to operate");
+  /////////////////////////////////////
+  //Central  Mote Code
+  ////////////////////////////////////
+  adf7030.Power_Up_From_Cold();
+  adf7030.Configure_ADF7030();
+  adf7030.Go_To_PHY_ON();
+  uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
+  adf7030.Write_To_Register(0x20000510, Data_PHR,1);
+  requestTemp(0xFF);
+  //adf7030.Read_Register(0x400042B4,1);
+
+while(1)
+  {
+    //Read_Register(0x400042B4,1);
+    //delay(1000);}
+  }
+}
+
+void requestRSSI(uint8_t Addr)
+{
+  Serial.println("\n\n Request mote RSSI value...");
+  uint8_t Data[] = {0x00, 0x00, 0x01, Addr, 0x81, 0x00, 0x00, 0x00};
+  adf7030.Write_To_Register(0x20000AF0,Data,2);
+  adf7030.Transmit();
+  Serial.print("Start Receiving\n\n");    
+  adf7030.Receive(0x20000C18,2);    
+  Serial.print("Finish Receiving\n\n");
+  uint8_t receivedData [8];
+  adf7030.Get_Register_Data(0x20000C18,2, receivedData);
+  uint8_t Data_RSSI [2];
+  Data_RSSI[0] = receivedData[5];
+  Data_RSSI[1] = receivedData[6];
+  uint16_t rssiBin = Data_RSSI[1];
+  rssiBin = rssiBin + (Data_RSSI[0] << 8);
+  uint16_t rssi2s = ~rssiBin;
+  rssi2s = rssi2s + (0b01);
+
+  int num = rssiBin >> 10;
+  
+  float val =  rssi2s - 63488;
+  val *= 0.25;
+
+  if (num == 1)
+  {
+    val *= -1;
+  }
+  Serial.print("\n\n RSSI value: ");
+  Serial.println(val);
+}
+
+void requestTemp(uint8_t Addr)
+{
+  Serial.println("\n\n Request mote temperature value...");
+  uint8_t Data[] = {0x00, 0x00, 0x01, Addr, 0x80, 0x00, 0x00, 0x00};
+  adf7030.Write_To_Register(0x20000AF0,Data,2);
+  adf7030.Transmit();
+  Serial.print("Start Receiving\n\n");    
+  adf7030.Receive(0x20000C18,2);    
+  Serial.print("Finish Receiving\n\n");
+  uint8_t receivedData [8];
+  adf7030.Get_Register_Data(0x20000C18,2, receivedData);
+  uint16_t tempBin = receivedData[5];
+  tempBin = tempBin + (receivedData[6] << 8);
+  tempBin = tempBin + (receivedData[7] << 16);
+
+  float temp = tempBin;
+  if (temp > 2048)
+  {
+    temp = temp - 4096;
+  }
+  temp *= 0.0625;
+
+  Serial.print("\n\n Temperature value: ");
+  Serial.println(temp);
+}
+

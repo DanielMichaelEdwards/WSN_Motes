@@ -114,20 +114,20 @@ void loop() {
 
   /*adf7030.Read_Register(0x20000AF0,1);
   */
-  /*adf7030.Power_Up_From_Cold();
+  adf7030.Power_Up_From_Cold();
   adf7030.Configure_ADF7030();
   adf7030.Read_Register(0x20000380,1);
   adf7030.Go_To_PHY_ON();
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
   adf7030.Write_To_Register(0x20000510, Data_PHR,1);
-  uint8_t Data[] = {0x00, 0x00, 0x01, 0x00};
-  adf7030.Write_To_Register(0x20000AF0,Data,1);
+  uint8_t Data[] = {0x00, 0x00, 0x01, 0xFF, 0x80, 0x01, 0x00, 0x00};
+  adf7030.Write_To_Register(0x20000AF0,Data,2);
   adf7030.Read_Register(0x40001800,1);
   adf7030.Transmit();
   Serial.print("Start Receiving\n\n");    
   adf7030.Receive(0x20000C18,1);    
   Serial.print("Finish Receiving\n\n");
-  adf7030.Read_Register(0x20000C18,1);*/
+  adf7030.Read_Register(0x20000C18,1);
   float num = adf7030.Get_RSSI();
   Serial.println(num);
   //adf7030.Read_Register(0x400042B4,1);

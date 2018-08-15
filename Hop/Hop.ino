@@ -104,9 +104,9 @@ void loop() {
     if ((registerData[0] == registerData[1]) && (registerData[0] == minerAddr))
     {
       //This packet is from a miners mote.
+      //Set the source to be the address of this mote.
       uint8_t updatedSource[] = {routes[myAddrIndex][0], registerData[1], registerData[2], registerData[3]};
-      forwardPacket(updatedSource);
-      
+      forwardPacket(updatedSource);      
     }
     
     if (registerData[2] == routes[myAddrIndex][0])
