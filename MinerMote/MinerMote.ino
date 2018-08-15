@@ -15,10 +15,9 @@ const int slaveSelectPin = 10;
 //const int checking = 12;
 
 uint8_t myAddrIndex = 1;
-uint8_t minerAddr = 0xFF;
 uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
-
+const byte sendPin = 2;
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
@@ -32,6 +31,8 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV4);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
+  attachInterrupt(digitalPinToInterrupt(sendPin), sendData, RISING);
+  
 }
 
 int Data = 0;
@@ -49,7 +50,7 @@ void loop() {
 ///////////////////////////////////////////
 //Start of Config Sequence
 /////////////////////////////////////////
-  
+  /*
   
   int temp = 0;
   long Value = 0;
@@ -80,9 +81,11 @@ void loop() {
   adf7030.Configure_ADF7030();  
   Serial.println("Ready to operate");
   /////////////////////////////////////
-  //Hop Things
+  //Miner Mote Code
   ////////////////////////////////////
-  uint8_t Data[] = {0x20, 0x00, 0x0A, 0xF0};
+  
+  
+  /*uint8_t Data[] = {0x20, 0x00, 0x0A, 0xF0};
   adf7030.Write_To_Register(0x40001800,Data,1);
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
   adf7030.Write_To_Register(0x20000510, Data_PHR,1);
@@ -91,24 +94,18 @@ void loop() {
   uint8_t registerData[4];
   adf7030.Read_Received(1, registerData);
   adf7030.Go_To_PHY_ON();
-  Serial.println(registerData[0], HEX);
+  Serial.println(registerData[0], HEX);*/
 
   while(1)
   {
-    Serial.print("Start Receiving\n\n");    
+    int pin5 = analogRead(5);
+    Serial.println(pin5);
+    /*Serial.print("Start Receiving\n\n");    
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
     adf7030.Read_Register(0x20000AF0,1);
     uint8_t registerData[4];
     adf7030.Read_Received(1, registerData);
-    if ((registerData[0] == registerData[1]) && (registerData[0] == minerAddr))
-    {
-      //This packet is from a miners mote.
-      uint8_t updatedSource[] = {routes[myAddrIndex][0], registerData[1], registerData[2], registerData[3]};
-      forwardPacket(updatedSource);
-      
-    }
-    
     if (registerData[2] == routes[myAddrIndex][0])
     {
       //I need to do something with this information
@@ -122,7 +119,28 @@ void loop() {
       else 
       {     
         //I was meant to receive this, but I must forward it.
-        forwardPacket(registerData);
+        if (registerData[3] == routes[0][0])
+        {
+          //This data is going to the central node (forward direction).
+          digitalWrite(8, HIGH);
+          adf7030.Write_To_Register(0x20000AF0, registerData,1);
+          uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][1],routes[myAddrIndex][0], registerData[0]};
+          adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
+          adf7030.Read_Register(0x20000AF0,2);
+          adf7030.Transmit();
+          digitalWrite(8, LOW);
+        }
+        else 
+        {
+          //This data is going away from the central node (backward direction).
+          digitalWrite(8, HIGH);
+          adf7030.Write_To_Register(0x20000AF0, registerData,1);
+          uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][2],routes[myAddrIndex][0], registerData[0]};
+          adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
+          adf7030.Read_Register(0x20000AF0,2);
+          adf7030.Transmit();
+          digitalWrite(8, LOW);
+        }     
       }
     }
     else {
@@ -130,33 +148,16 @@ void loop() {
       digitalWrite(6,HIGH);
       delay(1000);
       digitalWrite(6, LOW);
-    }
+    }*/
   }  
-}  
+} 
 
-void forwardPacket(uint8_t registerData[])
+void sendData()
 {
-  if (registerData[3] == routes[0][0])
-  {
-    //This data is going to the central node (forward direction).
-    digitalWrite(8, HIGH);
-    adf7030.Write_To_Register(0x20000AF0, registerData,1);
-    uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][1],routes[myAddrIndex][0], registerData[0]};
-    adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
-    adf7030.Read_Register(0x20000AF0,2);
-    adf7030.Transmit();
-    digitalWrite(8, LOW);
-  }
-  else 
-  {
-    //This data is going away from the central node (backward direction).
-    digitalWrite(8, HIGH);
-    adf7030.Write_To_Register(0x20000AF0, registerData,1);
-    uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][2],routes[myAddrIndex][0], registerData[0]};
-    adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
-    adf7030.Read_Register(0x20000AF0,2);
-    adf7030.Transmit();
-    digitalWrite(8, LOW);
-  }    
+  //Take in the input from the switches. 
+  //Encode the information
+  //Write to the transmit register including header infomation
+  //Send the packet
+  
 }
 
