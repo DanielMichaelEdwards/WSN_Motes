@@ -17,13 +17,14 @@ const int slaveSelectPin = 10;
 uint8_t minerAddr = 0xFF;
 uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
-const byte sendPin = 2;
+const int sendPin = 2;
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
   pinMode(6, OUTPUT);
   pinMode(7, OUTPUT);
   pinMode(8, OUTPUT);
+  pinMode(2, INPUT);
   digitalWrite(slaveSelectPin, HIGH);
   Serial.begin(2400);
   // initialize SPI:
@@ -31,13 +32,13 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV4);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
-  attachInterrupt(digitalPinToInterrupt(sendPin), sendMinerStatus, RISING);
+  attachInterrupt(digitalPinToInterrupt(2), sendMinerStatus, RISING);
   
 }
 
 int Data = 0;
 void loop() {
-  Serial.print("ADF7030 is configuring...");
+  Serial.println("ADF7030 is configuring...");
 ///////////////////////////////////////////////////
   //Start of Powerup From Cold sequence
 //////////////////////////////////////////////////
@@ -83,8 +84,6 @@ void loop() {
   /////////////////////////////////////
   //Miner Mote Code
   ////////////////////////////////////
-  
-  
   uint8_t Data[] = {0x20, 0x00, 0x0A, 0xF0};
   adf7030.Write_To_Register(0x40001800,Data,1);
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
@@ -92,19 +91,20 @@ void loop() {
   uint8_t Header_Data[] = {0x03, 0x02, 0x01,0x00};
   adf7030.Write_Register_Short(0b01, 0x00, Header_Data, 4);
   adf7030.Go_To_PHY_ON();
-
   while(1)
-  {
+  {       
     Serial.print("Start Receiving\n\n");    
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
-    adf7030.Read_Register(0x20000AF0,1);
     uint8_t registerData[8];
     adf7030.Read_Received(2, registerData);
     if (registerData[3] == minerAddr)
     {
+      digitalWrite(6, LOW);
+      digitalWrite(7, HIGH);
       //This packet is intended for a miner mote. Decode it and display the information.
       decodePacket(registerData);
+      digitalWrite(7, LOW);
     }
   }  
 } 
@@ -115,6 +115,42 @@ void sendMinerStatus()
   //Encode the information
   //Write to the transmit register including header infomation
   //Send the packet
+  int injuredIO = analogRead(5);
+  int environIO = analogRead(4);
+  int trappedIO = analogRead(3);
+  
+  if (injuredIO > 1000)
+  {
+    injuredIO = 1;//The miner has selected that they are injured.
+  }
+  else
+  {
+    injuredIO = 0;
+  }
+  if (environIO > 1000)
+  {
+    environIO = 1;//The miner has selected that there is environmental dangers. e.g: Fire, gas...
+  }
+  else
+  {
+    environIO = 0;
+  }
+  if (trappedIO > 1000)
+  {
+    trappedIO = 1;//The miner has indicated that they are trapped.
+  }
+  else
+  {
+    trappedIO = 0;
+  }
+  
+  uint8_t minerStatus = 0b00;
+  minerStatus = injuredIO;
+  minerStatus = minerStatus + (environIO << 1);
+  minerStatus = minerStatus + (trappedIO << 2);  
+  uint8_t Data[] = {minerAddr, minerAddr, 0x01, 0x00, 0x0A, minerStatus, 0x00, 0x00};
+  adf7030.Write_To_Register(0x20000AF0,Data,2);
+  adf7030.Transmit();
   
 }
 
@@ -124,39 +160,35 @@ void decodePacket(uint8_t registerData[])
   //A 1 in the MSB position of the command field indicates that it is a command, otherwise it is sending information.
   if (registerData[4] == 0x80)
   { 
+    
     //Send temperature
     adf7030.Go_To_PHY_ON();
     //Go to monitoring state
     digitalWrite(slaveSelectPin, LOW);
     receivedVal = SPI.transfer(0x8A);  
     adf7030.Wait_For_CMD_Ready();
-    adf7030.Poll_Status_Byte(1,0);
+    
     digitalWrite(slaveSelectPin, HIGH);
     uint8_t Data_TEMP [8];
     adf7030.Get_Register_Data(0X2000038C, 2, Data_TEMP);
-    uint8_t Data[] = {minerAddr, minerAddr, 0x01, 0x00, 0x81, Data_TEMP[5], Data_TEMP[6], Data_TEMP[7]};
+    uint8_t Data[] = {minerAddr, minerAddr, 0x01, 0x00, 0xFF, Data_TEMP[5], Data_TEMP[6], Data_TEMP[7]};
     adf7030.Write_To_Register(0x20000AF0,Data,2);
+
     adf7030.Transmit();
-    digitalWrite(6, LOW);
   }
   else if (registerData[4] == 0x81)
   { 
     //Send the RSSI
-    digitalWrite(6,HIGH);
     uint8_t Data_RSSI [4];
     adf7030.Get_Register_Data(0x20000538,1, Data_RSSI);
-    uint8_t Data[] = {minerAddr, minerAddr, 0x01, 0x00, 0x81, Data_RSSI[0], Data_RSSI[1], 0x00};
+    uint8_t Data[] = {minerAddr, minerAddr, 0x01, 0x00, 0xFF, Data_RSSI[0], Data_RSSI[1], 0x00};
     adf7030.Write_To_Register(0x20000AF0,Data,2);
-    adf7030.Transmit();
-    digitalWrite(6, LOW);    
+    adf7030.Transmit(); 
   }
   else if (registerData[4] == 0x82)
   {
     //Resend the status of the miner mote
     sendMinerStatus();
-    digitalWrite(7,HIGH);
-    delay(1000);
-    digitalWrite(7, LOW);
   }
   else if (registerData[4] == 0x00)
   {
@@ -164,9 +196,6 @@ void decodePacket(uint8_t registerData[])
   }
   else if (registerData[4] == 0x01)
   {
-    digitalWrite(8, HIGH);
-    delay(1000);
-    digitalWrite(8, LOW);
     //Help is on the way
   }
 }

@@ -93,7 +93,16 @@ void loop() {
   adf7030.Go_To_PHY_ON();
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
   adf7030.Write_To_Register(0x20000510, Data_PHR,1);
-  requestTemp(0xFF);
+  requestRSSI(0xFF);
+  while(1)
+  {
+      Serial.print("Start Receiving\n\n");    
+      adf7030.Receive(0x20000C18,2);    
+      Serial.print("Finish Receiving\n\n");
+      adf7030.Read_Register(0x20000C18, 2);
+  }
+
+  
   //adf7030.Read_Register(0x400042B4,1);
 
 while(1)
@@ -132,7 +141,8 @@ void requestRSSI(uint8_t Addr)
     val *= -1;
   }
   Serial.print("\n\n RSSI value: ");
-  Serial.println(val);
+  Serial.print(val);
+  Serial.println("dBm");
 }
 
 void requestTemp(uint8_t Addr)
@@ -159,5 +169,43 @@ void requestTemp(uint8_t Addr)
 
   Serial.print("\n\n Temperature value: ");
   Serial.println(temp);
+}
+
+void requestResendMinerStatus()
+{
+  //Always from a miner
+  Serial.println("\n\n Request miner status value...");
+  uint8_t Data[] = {0x00, 0x00, 0x01, 0xFF, 0x82, 0x00, 0x00, 0x00};
+  adf7030.Write_To_Register(0x20000AF0,Data,2);
+  adf7030.Transmit();
+  Serial.print("Start Receiving\n\n");    
+  adf7030.Receive(0x20000C18,2);    
+  Serial.print("Finish Receiving\n\n");
+  uint8_t receivedData [8];
+  adf7030.Get_Register_Data(0x20000C18,2, receivedData);
+  uint8_t minerStatusByte = receivedData[5];
+  boolean injuredIO = (minerStatusByte & 0x01) != 0;
+  boolean environIO = (minerStatusByte & 0x02) != 0;
+  boolean trappedIO = (minerStatusByte & 0x04) != 0;
+  uint8_t alertByte = receivedData[4];
+  if (alertByte == 0x0A)
+  {
+    Serial.println("\n\nALERT! ALERT! Miner distress received!!");
+  }
+  else {
+    Serial.println("\n\n Miner status received.");
+  }
+  if (injuredIO)
+  {
+    Serial.println("Miner injured.");
+  }
+  if (environIO)
+  {
+    Serial.println("Environmental dangers present.");
+  }
+  if (trappedIO)
+  {
+    Serial.println("Miners are trapped!");
+  }  
 }
 
