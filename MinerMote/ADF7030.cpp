@@ -238,9 +238,7 @@ void ADF7030::Transmit() {
 
   digitalWrite(slaveSelectPin, LOW);
   Wait_For_CMD_Ready();
-  digitalWrite(8, HIGH);
   Poll_Status_Byte(0,1);
-  digitalWrite(8, LOW);
   //Need IRQ events
   Poll_Status_Byte(1,0);
   digitalWrite(slaveSelectPin, HIGH);

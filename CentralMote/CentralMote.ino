@@ -18,6 +18,7 @@ const int slaveSelectPin = 10;
 uint8_t minerAddr = 0xFF;
 uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
+const int TX_PKT_BTN = 2;
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
@@ -29,7 +30,7 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV64);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
-
+  pinMode(TX_PKT_BTN, INPUT);
 
   //Set Transceiver as SLave active
   digitalWrite(slaveSelectPin, LOW);
@@ -41,6 +42,19 @@ void setup() {
 
 int Data = 0;
 void loop() {
+  /*String cmd;
+  if (Serial.available() > 0)
+  {
+    cmd = Serial.readString();   
+
+  if (cmd == "RSSI")
+  {
+    Serial.println("h");
+  }
+    //cmd += c;  
+    
+  }*/
+  
 
     Serial.print("ADF7030 is configuring...");
 ///////////////////////////////////////////////////
@@ -93,22 +107,46 @@ void loop() {
   adf7030.Go_To_PHY_ON();
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
   adf7030.Write_To_Register(0x20000510, Data_PHR,1);
-  requestRSSI(0xFF);
-  while(1)
-  {
+ while(1)
+ {
       Serial.print("Start Receiving\n\n");    
       adf7030.Receive(0x20000C18,2);    
       Serial.print("Finish Receiving\n\n");
       adf7030.Read_Register(0x20000C18, 2);
+      uint8_t receivedData [8];
+      adf7030.Get_Register_Data(0x20000C18,2, receivedData);  
+      if (receivedData[4] == 0x0A)
+      {
+        //A miner is in distress
+        Serial.println("\n\nALERT! ALERT! Miner distress received!!");
+        uint8_t minerStatusByte = receivedData[5];
+        decodeMinerInfo(minerStatusByte);
+        sendMessageReceived();
+      }
   }
+}
 
-  
-  //adf7030.Read_Register(0x400042B4,1);
+void sendCMD()
+{
+  Serial.println("Send cmd");
+}
 
-while(1)
+void sendCommand()
+{
+  int rssiIO = analogRead(5);
+  int resendIO = analogRead(4);
+  int msgReceivedIO = analogRead(3);
+  if (rssiIO > 1000)
   {
-    //Read_Register(0x400042B4,1);
-    //delay(1000);}
+    requestRSSI(0xFF);
+  }
+  if (resendIO > 1000)
+  {
+    requestResendMinerStatus();
+  }
+  if (msgReceivedIO > 1000)
+  {
+    sendMessageReceived();
   }
 }
 
@@ -184,9 +222,6 @@ void requestResendMinerStatus()
   uint8_t receivedData [8];
   adf7030.Get_Register_Data(0x20000C18,2, receivedData);
   uint8_t minerStatusByte = receivedData[5];
-  boolean injuredIO = (minerStatusByte & 0x01) != 0;
-  boolean environIO = (minerStatusByte & 0x02) != 0;
-  boolean trappedIO = (minerStatusByte & 0x04) != 0;
   uint8_t alertByte = receivedData[4];
   if (alertByte == 0x0A)
   {
@@ -194,18 +229,39 @@ void requestResendMinerStatus()
   }
   else {
     Serial.println("\n\n Miner status received.");
+    //Update LED
   }
+  decodeMinerInfo(minerStatusByte);
+  sendMessageReceived();
+}
+
+void sendMessageReceived()
+{
+  Serial.println("\n\n Inform Miner that message has been received...");
+  uint8_t Data[] = {0x00, 0x00, 0x01, 0xFF, 0x00, 0x00, 0x00, 0x00};
+  adf7030.Write_To_Register(0x20000AF0,Data,2);
+  adf7030.Transmit();
+}
+
+void decodeMinerInfo(uint8_t minerStatusByte)
+{
+  boolean injuredIO = (minerStatusByte & 0x01) != 0;
+  boolean environIO = (minerStatusByte & 0x02) != 0;
+  boolean trappedIO = (minerStatusByte & 0x04) != 0;
   if (injuredIO)
   {
     Serial.println("Miner injured.");
+    //Update LED
   }
   if (environIO)
   {
     Serial.println("Environmental dangers present.");
+    //Update LED
   }
   if (trappedIO)
   {
     Serial.println("Miners are trapped!");
+    //Update LED
   }  
 }
 

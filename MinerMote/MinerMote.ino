@@ -17,14 +17,21 @@ const int slaveSelectPin = 10;
 uint8_t minerAddr = 0xFF;
 uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
-const int sendPin = 2;
+const int TX_PKT_BTN = 2;
+const int RX_LED = 4;
+const int TX_LED = 5;
+const int MSG_RX_LED = 6;
+const int HLP_LED = 7;
+const int RSND_LED = 8;
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
-  pinMode(6, OUTPUT);
-  pinMode(7, OUTPUT);
-  pinMode(8, OUTPUT);
-  pinMode(2, INPUT);
+  pinMode(RX_LED, OUTPUT);
+  pinMode(TX_LED, OUTPUT);
+  pinMode(MSG_RX_LED, OUTPUT);
+  pinMode(HLP_LED, OUTPUT);
+  pinMode(RSND_LED, OUTPUT);
+  pinMode(TX_PKT_BTN, INPUT);
   digitalWrite(slaveSelectPin, HIGH);
   Serial.begin(2400);
   // initialize SPI:
@@ -32,7 +39,7 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV4);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
-  attachInterrupt(digitalPinToInterrupt(2), sendMinerStatus, RISING);
+  attachInterrupt(digitalPinToInterrupt(TX_PKT_BTN), sendMinerStatus, RISING);
   
 }
 
@@ -93,6 +100,7 @@ void loop() {
   adf7030.Go_To_PHY_ON();
   while(1)
   {       
+    digitalWrite(RX_LED, HIGH);
     Serial.print("Start Receiving\n\n");    
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
@@ -100,11 +108,11 @@ void loop() {
     adf7030.Read_Received(2, registerData);
     if (registerData[3] == minerAddr)
     {
-      digitalWrite(6, LOW);
-      digitalWrite(7, HIGH);
+      digitalWrite(RX_LED, LOW);
+      digitalWrite(TX_LED, HIGH);
       //This packet is intended for a miner mote. Decode it and display the information.
       decodePacket(registerData);
-      digitalWrite(7, LOW);
+      digitalWrite(TX_LED, LOW);
     }
   }  
 } 
@@ -193,10 +201,16 @@ void decodePacket(uint8_t registerData[])
   else if (registerData[4] == 0x00)
   {
     //The central node has received the message that a miner has sent.
+    digitalWrite(MSG_RX_LED, HIGH);
+    delay(1000);
+    digitalWrite(MSG_RX_LED, LOW);
   }
   else if (registerData[4] == 0x01)
   {
     //Help is on the way
+    digitalWrite(HLP_LED, HIGH);
+    delay(1000);
+    digitalWrite(HLP_LED, LOW);
   }
 }
 
