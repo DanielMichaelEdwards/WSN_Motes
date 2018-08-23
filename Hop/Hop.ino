@@ -18,13 +18,15 @@ uint8_t myAddrIndex = 1;
 uint8_t minerAddr = 0xFF;
 uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
-
+const int RX_LED = 4;
+const int TX_LED = 5;
+const int PWR_LED = 6;
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
-  pinMode(6, OUTPUT);
-  pinMode(7, OUTPUT);
-  pinMode(8, OUTPUT);
+  pinMode(RX_LED, OUTPUT);
+  pinMode(TX_LED, OUTPUT);
+  pinMode(PWR_LED, OUTPUT);
   digitalWrite(slaveSelectPin, HIGH);
   Serial.begin(2400);
   // initialize SPI:
@@ -82,6 +84,10 @@ void loop() {
   /////////////////////////////////////
   //Hop Things
   ////////////////////////////////////
+  //Set Transmit and receive address the same
+  uint8_t Data_Addr[] = {0x00, 0x15, 0xE2, 0xBC};
+  adf7030.Write_To_Register(0x200004F4, Data_Addr, 1);
+  adf7030.Read_Register(0x200004F4, 2);
   uint8_t Data[] = {0x20, 0x00, 0x0A, 0xF0};
   adf7030.Write_To_Register(0x40001800,Data,1);
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
@@ -95,22 +101,27 @@ void loop() {
 
   while(1)
   {
+    digitalWrite(RX_LED, HIGH);
     Serial.print("Start Receiving\n\n");    
     adf7030.Receive(0x20000C18,1);    
     Serial.print("Finish Receiving\n\n");
+    digitalWrite(RX_LED, LOW);
     adf7030.Read_Register(0x20000AF0,1);
     uint8_t registerData[4];
     adf7030.Read_Received(1, registerData);
     if ((registerData[0] == registerData[1]) && (registerData[0] == minerAddr))
     {
+      digitalWrite(TX_LED, HIGH);
       //This packet is from a miners mote.
       //Set the source to be the address of this mote.
       uint8_t updatedSource[] = {routes[myAddrIndex][0], registerData[1], registerData[2], registerData[3]};
-      forwardPacket(updatedSource);      
+      forwardPacket(updatedSource);   
+      digitalWrite(TX_LED, LOW);   
     }
     
     if (registerData[2] == routes[myAddrIndex][0])
     {
+      digitalWrite(TX_LED, HIGH);
       //I need to do something with this information
       if (registerData[3] == routes[myAddrIndex][0])
       {
@@ -124,6 +135,7 @@ void loop() {
         //I was meant to receive this, but I must forward it.
         forwardPacket(registerData);
       }
+      digitalWrite(TX_LED, LOW);
     }
     else {
       //I received it but don't do anything with it.

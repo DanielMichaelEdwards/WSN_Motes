@@ -19,6 +19,9 @@ uint8_t minerAddr = 0xFF;
 uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
 const int TX_PKT_BTN = 2;
+const int RX_LED = 4;
+const int TX_LED = 5;
+const int ALRT_LED = 6;
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
@@ -107,23 +110,42 @@ void loop() {
   adf7030.Go_To_PHY_ON();
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
   adf7030.Write_To_Register(0x20000510, Data_PHR,1);
- while(1)
- {
-      Serial.print("Start Receiving\n\n");    
-      adf7030.Receive(0x20000C18,2);    
-      Serial.print("Finish Receiving\n\n");
-      adf7030.Read_Register(0x20000C18, 2);
-      uint8_t receivedData [8];
-      adf7030.Get_Register_Data(0x20000C18,2, receivedData);  
-      if (receivedData[4] == 0x0A)
-      {
-        //A miner is in distress
-        Serial.println("\n\nALERT! ALERT! Miner distress received!!");
-        uint8_t minerStatusByte = receivedData[5];
-        decodeMinerInfo(minerStatusByte);
-        sendMessageReceived();
-      }
-  }
+  requestRSSI(0xFF);
+  while(1)
+   {
+        digitalWrite(RX_LED, HIGH);
+        Serial.print("Start Receiving\n\n");    
+        adf7030.Receive(0x20000C18,2);    
+        Serial.print("Finish Receiving\n\n");
+        adf7030.Read_Register(0x20000C18, 2);
+        uint8_t receivedData [8];
+        adf7030.Get_Register_Data(0x20000C18,2, receivedData); 
+        if (receivedData[3] == 0x00)
+        {
+          digitalWrite(RX_LED, LOW);
+          if (receivedData[4] == 0x0A)
+          {
+            digitalWrite(ALRT_LED, HIGH);
+            //A miner is in distress
+            Serial.println("\n\nALERT! ALERT! Miner distress received!!");
+            uint8_t sector = receivedData[0];
+            if (sector == 0xFF)
+            {
+              //The message is straight from a miner
+              Serial.println("Miner in unknown sector.");
+            }
+            else
+            {
+              //The first hop is the sector of the miner
+              Serial.print("Miner in sector: ");
+              Serial.println(sector, DEC);
+            }
+            uint8_t minerStatusByte = receivedData[5];
+            decodeMinerInfo(minerStatusByte);
+            sendMessageReceived();
+          }
+        }
+    }
 }
 
 void sendCMD()
@@ -155,11 +177,29 @@ void requestRSSI(uint8_t Addr)
   Serial.println("\n\n Request mote RSSI value...");
   uint8_t Data[] = {0x00, 0x00, 0x01, Addr, 0x81, 0x00, 0x00, 0x00};
   adf7030.Write_To_Register(0x20000AF0,Data,2);
-  adf7030.Transmit();
-  Serial.print("Start Receiving\n\n");    
-  adf7030.Receive(0x20000C18,2);    
-  Serial.print("Finish Receiving\n\n");
-  uint8_t receivedData [8];
+  if (adf7030.Transmit() == false)
+  {
+    return;
+  }
+  Serial.print("Start Receiving\n\n");  
+  uint8_t receivedData [] = {0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
+  int timer = millis();
+  int elapsedTime = 0;
+  /*while(receivedData[3] != 0x00)
+  {*/
+    adf7030.Wait_For_Reply(0x20000C18,2);
+    /*elapsedTime = millis() - timer;
+    Serial.println(elapsedTime);
+    if (elapsedTime > 30000)
+    {
+      Serial.println("RSSI not received.");
+      return;
+    }
+  }
+  Serial.print("Finish Receiving\n\n");*/
+  
+  
+  //adf7030.Read_Register(0x20000C18, 2);
   adf7030.Get_Register_Data(0x20000C18,2, receivedData);
   uint8_t Data_RSSI [2];
   Data_RSSI[0] = receivedData[5];
@@ -188,9 +228,15 @@ void requestTemp(uint8_t Addr)
   Serial.println("\n\n Request mote temperature value...");
   uint8_t Data[] = {0x00, 0x00, 0x01, Addr, 0x80, 0x00, 0x00, 0x00};
   adf7030.Write_To_Register(0x20000AF0,Data,2);
-  adf7030.Transmit();
+  if (adf7030.Transmit() == false)
+  {
+    return;
+  }
   Serial.print("Start Receiving\n\n");    
-  adf7030.Receive(0x20000C18,2);    
+  if (adf7030.Wait_For_Reply(0x20000C18,2) == false)
+  {
+    return;
+  }
   Serial.print("Finish Receiving\n\n");
   uint8_t receivedData [8];
   adf7030.Get_Register_Data(0x20000C18,2, receivedData);
@@ -215,9 +261,15 @@ void requestResendMinerStatus()
   Serial.println("\n\n Request miner status value...");
   uint8_t Data[] = {0x00, 0x00, 0x01, 0xFF, 0x82, 0x00, 0x00, 0x00};
   adf7030.Write_To_Register(0x20000AF0,Data,2);
-  adf7030.Transmit();
+  if (adf7030.Transmit() == false)
+  {
+    return;
+  }
   Serial.print("Start Receiving\n\n");    
-  adf7030.Receive(0x20000C18,2);    
+  if (adf7030.Wait_For_Reply(0x20000C18,2) == false)
+  {
+    return;
+  }
   Serial.print("Finish Receiving\n\n");
   uint8_t receivedData [8];
   adf7030.Get_Register_Data(0x20000C18,2, receivedData);
@@ -240,7 +292,22 @@ void sendMessageReceived()
   Serial.println("\n\n Inform Miner that message has been received...");
   uint8_t Data[] = {0x00, 0x00, 0x01, 0xFF, 0x00, 0x00, 0x00, 0x00};
   adf7030.Write_To_Register(0x20000AF0,Data,2);
-  adf7030.Transmit();
+  if (adf7030.Transmit() == false)
+  {
+    return;
+  }
+}
+
+void notifyHelpOnTheWay()
+{
+  Serial.println("\n\nInform Miner that help is on the way...");
+  uint8_t Data[] = {0x00, 0x00, 0x01, 0xFF, 0x01, 0x00, 0x00, 0x00};
+  adf7030.Write_To_Register(0x20000AF0,Data,2);
+  if (adf7030.Transmit() == false)
+  {
+    return;
+  }
+  digitalWrite(ALRT_LED, LOW);
 }
 
 void decodeMinerInfo(uint8_t minerStatusByte)

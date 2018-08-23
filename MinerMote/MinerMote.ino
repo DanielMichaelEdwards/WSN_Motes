@@ -31,7 +31,7 @@ void setup() {
   pinMode(MSG_RX_LED, OUTPUT);
   pinMode(HLP_LED, OUTPUT);
   pinMode(RSND_LED, OUTPUT);
-  pinMode(TX_PKT_BTN, INPUT);
+  //pinMode(TX_PKT_BTN, INPUT);
   digitalWrite(slaveSelectPin, HIGH);
   Serial.begin(2400);
   // initialize SPI:
@@ -39,7 +39,7 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV4);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
-  attachInterrupt(digitalPinToInterrupt(TX_PKT_BTN), sendMinerStatus, RISING);
+  //attachInterrupt(digitalPinToInterrupt(TX_PKT_BTN), sendMinerStatus, RISING);
   
 }
 

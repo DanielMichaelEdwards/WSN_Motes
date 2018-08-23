@@ -38,7 +38,7 @@ void ADF7030::Read_Received(int Iterations, uint8_t RegisterData[])
 {
   
   Serial.println("\n\n Reading received register...");
-  uint8_t AddressArray[] = {0x20, 0x00, 0x0C, 0x18};
+  uint8_t AddressArray[] = {0x20, 0x00, 0x0A, 0xF0};
   uint8_t ReceivedData = 0;
 
   digitalWrite(slaveSelectPin, LOW);
