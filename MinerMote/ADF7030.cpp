@@ -16,7 +16,6 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
   digitalWrite(slaveSelectPin, LOW);
   
   ReceivedData = SPI.transfer(0b01111000);
-  Serial.println("Registers data");
   for(int i=0;i<4;i++)
   {
     ReceivedData = SPI.transfer(AddressArray[i]);

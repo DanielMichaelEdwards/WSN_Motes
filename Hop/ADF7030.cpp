@@ -16,7 +16,6 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
   digitalWrite(slaveSelectPin, LOW);
   
   ReceivedData = SPI.transfer(0b01111000);
-  Serial.println("Registers data");
   for(int i=0;i<4;i++)
   {
     ReceivedData = SPI.transfer(AddressArray[i]);
@@ -28,7 +27,6 @@ void ADF7030::Read_Register(uint32_t Address, int Iterations){
   for(int j=0; j< Iterations*4;j++)
   {
     ReceivedData = SPI.transfer(0xFF);
-    Serial.println(ReceivedData,HEX);
   }
   
   digitalWrite(slaveSelectPin,HIGH);
@@ -62,7 +60,6 @@ void ADF7030::Read_Received(int Iterations, uint8_t RegisterData[])
 
 void ADF7030::Write_To_Register(uint32_t Address, uint8_t Data[], int dataSize)
 {
-  Serial.println("\n\n Writing to register...");
   uint8_t AddressArray[4];
   int ReceivedData = 0;
   AddressArray[0] = Address >> 24;
@@ -79,12 +76,10 @@ void ADF7030::Write_To_Register(uint32_t Address, uint8_t Data[], int dataSize)
     ReceivedData = SPI.transfer(AddressArray[i]);
   }
   
-  Serial.println("\n\n Register Data:");
   
   for(int j=0; j< dataSize*4;j++)
   {
     ReceivedData = SPI.transfer(Data[j]);
-    Serial.println(ReceivedData, HEX);
   }
   
   digitalWrite(slaveSelectPin,HIGH);
@@ -109,7 +104,6 @@ void ADF7030::Write_Register_Short(uint8_t Pointer, uint8_t Offset, uint8_t Data
 
 void ADF7030::Poll_Status_Byte (int bit2, int bit1)
  {
-    Serial.println("\n\n Start Polling");
     receivedVal = SPI.transfer(0xFF);
 
     Idle_State_1 = bitRead(receivedVal,1);
@@ -126,7 +120,6 @@ void ADF7030::Poll_Status_Byte (int bit2, int bit1)
 }
 
 void ADF7030::Power_Up_From_Cold() {
-  Serial.println("\n\n Start power up sequence...");
   digitalWrite(slaveSelectPin, LOW);
 
   receivedVal = SPI.transfer(0xFF);
@@ -134,7 +127,6 @@ void ADF7030::Power_Up_From_Cold() {
   while (digitalRead(12) == 0)
   {
     receivedVal = SPI.transfer(0xFF);
-    Serial.println("MISO is Low");
   }
 
   digitalWrite(slaveSelectPin, HIGH);
@@ -158,7 +150,6 @@ void ADF7030::Wait_For_CMD_Ready ()
 }
 
 void ADF7030::Configure_ADF7030 () {
-  Serial.println("\n\n Configuring ADF7030...");
   digitalWrite(slaveSelectPin, LOW);
   receivedVal = SPI.transfer(0b10000101);
   digitalWrite(slaveSelectPin, HIGH);
@@ -175,7 +166,6 @@ void ADF7030::Configure_ADF7030 () {
 
 void ADF7030::Go_To_PHY_ON()
 {
-  Serial.println("\n\n Go to PHY_ON...");
   digitalWrite(slaveSelectPin, LOW);
   receivedVal = SPI.transfer(0x82);  
   Wait_For_CMD_Ready();
@@ -185,7 +175,6 @@ void ADF7030::Go_To_PHY_ON()
 }
 void ADF7030::Go_To_PHY_OFF()
 {
-  Serial.println("\n\n Go to PHY_OFF...");
   digitalWrite(slaveSelectPin, LOW);
   receivedVal = SPI.transfer(0x81);  
   Wait_For_CMD_Ready();
@@ -196,7 +185,6 @@ void ADF7030::Go_To_PHY_OFF()
 
 void ADF7030::Transmit() {
   //digitalWrite(8, HIGH);
-  Serial.println("\n\n Start Transmission...");
   digitalWrite(slaveSelectPin, LOW);
   receivedVal = SPI.transfer(0x84);//Go to PHY_TX state
   digitalWrite(slaveSelectPin, HIGH);
@@ -207,22 +195,18 @@ void ADF7030::Transmit() {
   //Need IRQ events
   Poll_Status_Byte(1,0);
   digitalWrite(slaveSelectPin, HIGH);
-  Serial.println("Transmission Completed.");
   //digitalWrite(8, LOW);
 }
 
 void ADF7030::Receive(uint32_t Address, int Iterations) {
-  Serial.print("\n\n Ready to Receive...");
   digitalWrite(slaveSelectPin, LOW);
   receivedVal = SPI.transfer(0x83);//Go to PHY_RX state
   digitalWrite(slaveSelectPin, HIGH);
   digitalWrite(slaveSelectPin, LOW);
   Wait_For_CMD_Ready();  
   Poll_Status_Byte(0,1);
-  Serial.print("\n\n Waiting for data...");
   //Need IRQ events
   Poll_Status_Byte(1,0);
-  Serial.print("\n\n Data Received.");
   digitalWrite(slaveSelectPin, HIGH);
   //Read_Register(Address, Iterations); 
 

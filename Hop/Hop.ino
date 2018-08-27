@@ -16,7 +16,7 @@ const int slaveSelectPin = 10;
 
 uint8_t myAddrIndex = 1;
 uint8_t minerAddr = 0xFF;
-uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
+uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0xFF},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
 const int RX_LED = 4;
 const int TX_LED = 5;
@@ -97,16 +97,13 @@ void loop() {
   uint8_t registerData[4];
   adf7030.Read_Received(1, registerData);
   adf7030.Go_To_PHY_ON();
-  Serial.println(registerData[0], HEX);
+  digitalWrite(PWR_LED, HIGH);
 
   while(1)
   {
     digitalWrite(RX_LED, HIGH);
-    Serial.print("Start Receiving\n\n");    
     adf7030.Receive(0x20000C18,1);    
-    Serial.print("Finish Receiving\n\n");
     digitalWrite(RX_LED, LOW);
-    adf7030.Read_Register(0x20000AF0,1);
     uint8_t registerData[4];
     adf7030.Read_Received(1, registerData);
     if ((registerData[0] == registerData[1]) && (registerData[0] == minerAddr))
@@ -117,6 +114,7 @@ void loop() {
       uint8_t updatedSource[] = {routes[myAddrIndex][0], registerData[1], registerData[2], registerData[3]};
       forwardPacket(updatedSource);   
       digitalWrite(TX_LED, LOW);   
+      break;
     }
     
     if (registerData[2] == routes[myAddrIndex][0])
@@ -126,9 +124,15 @@ void loop() {
       if (registerData[3] == routes[myAddrIndex][0])
       {
         //This data is for me!
-        digitalWrite(7, HIGH);
-        delay(1000);
-        digitalWrite(7, LOW);
+        if (registerData[4] == 0x81)
+        { 
+          //Send the RSSI
+          uint8_t Data_RSSI [4];
+          adf7030.Get_Register_Data(0x20000538,1, Data_RSSI);
+          uint8_t Data[] = {minerAddr, minerAddr, 0x01, 0x00, 0xFF, Data_RSSI[0], Data_RSSI[1], 0x00};
+          adf7030.Write_To_Register(0x20000AF0,Data,2);
+          adf7030.Transmit(); 
+        }
       }
       else 
       {     
@@ -139,9 +143,6 @@ void loop() {
     }
     else {
       //I received it but don't do anything with it.
-      digitalWrite(6,HIGH);
-      delay(1000);
-      digitalWrite(6, LOW);
     }
   }  
 }  
@@ -155,7 +156,6 @@ void forwardPacket(uint8_t registerData[])
     adf7030.Write_To_Register(0x20000AF0, registerData,1);
     uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][1],routes[myAddrIndex][0], registerData[0]};
     adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
-    adf7030.Read_Register(0x20000AF0,2);
     adf7030.Transmit();
     digitalWrite(8, LOW);
   }
@@ -166,7 +166,6 @@ void forwardPacket(uint8_t registerData[])
     adf7030.Write_To_Register(0x20000AF0, registerData,1);
     uint8_t addrInfo[4] = {registerData[3],routes[myAddrIndex][2],routes[myAddrIndex][0], registerData[0]};
     adf7030.Write_Register_Short(0b01, 0x00, addrInfo, 4);
-    adf7030.Read_Register(0x20000AF0,2);
     adf7030.Transmit();
     digitalWrite(8, LOW);
   }    

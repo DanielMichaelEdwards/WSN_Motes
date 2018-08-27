@@ -4,7 +4,7 @@
 #include "ADF7030.h"
 const uint8_t Radio_Memory_Configuration[ ] = { 
   //#include "C:\Users\95ry9\Documents\Varsity\Fourth_Year\ELEN4002_Lab_Proj\WSN_Motes\ConfigSetup\IEEE_Packet_Format.cfg"
-  #include "C:\Users\Daniel\Documents\Daniel\Varsity\4th Year\Lab Project\Arduino Code\WSN_Motes\Hop\IEEE_Packet_Format.cfg" 
+  #include "C:\Users\Daniel\Documents\Daniel\Varsity\4th Year\Lab Project\Arduino Code\WSN_Motes\Hop\13dBm.cfg" 
   };
 
 ADF7030 adf7030;
@@ -18,14 +18,13 @@ const int slaveSelectPin = 10;
 uint8_t minerAddr = 0xFF;
 uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
-const int TX_PKT_BTN = 2;
+const int TX_PKT_SWTCH = 2;
 const int RX_LED = 4;
 const int TX_LED = 5;
 const int ALRT_LED = 6;
 void setup() {
   // set the slaveSelectPin as an output:
   pinMode(slaveSelectPin, OUTPUT);
-  pinMode(7,OUTPUT);
   digitalWrite(slaveSelectPin, HIGH);
   Serial.begin(2400);
   // initialize SPI:
@@ -33,7 +32,10 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV64);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
-  pinMode(TX_PKT_BTN, INPUT);
+  pinMode(TX_PKT_SWTCH, INPUT);
+  pinMode(RX_LED, OUTPUT);
+  pinMode(TX_LED, OUTPUT);
+  pinMode(ALRT_LED, OUTPUT);
 
   //Set Transceiver as SLave active
   digitalWrite(slaveSelectPin, LOW);
@@ -41,6 +43,7 @@ void setup() {
   SPI.transfer(0b10000101); 
   //Disbale Transceiver as Slave
   digitalWrite(slaveSelectPin, HIGH);
+  attachInterrupt(digitalPinToInterrupt(TX_PKT_SWTCH), sendCommand, RISING);
 }
 
 int Data = 0;
@@ -57,9 +60,6 @@ void loop() {
     //cmd += c;  
     
   }*/
-  
-
-    Serial.print("ADF7030 is configuring...");
 ///////////////////////////////////////////////////
   //Start of Powerup From Cold sequence
 //////////////////////////////////////////////////
@@ -101,7 +101,6 @@ void loop() {
   count = Value;
   }
   adf7030.Configure_ADF7030();  
-  Serial.println("Ready to operate");
   /////////////////////////////////////
   //Central  Mote Code
   ////////////////////////////////////
@@ -110,17 +109,15 @@ void loop() {
   adf7030.Go_To_PHY_ON();
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
   adf7030.Write_To_Register(0x20000510, Data_PHR,1);
-  requestRSSI(0xFF);
   while(1)
    {
         digitalWrite(RX_LED, HIGH);
         Serial.print("Start Receiving\n\n");    
         adf7030.Receive(0x20000C18,2);    
         Serial.print("Finish Receiving\n\n");
-        adf7030.Read_Register(0x20000C18, 2);
         uint8_t receivedData [8];
         adf7030.Get_Register_Data(0x20000C18,2, receivedData); 
-        if (receivedData[3] == 0x00)
+        if ((receivedData[3] == 0x00) && (receivedData[2] == 0x00))
         {
           digitalWrite(RX_LED, LOW);
           if (receivedData[4] == 0x0A)
@@ -148,27 +145,29 @@ void loop() {
     }
 }
 
-void sendCMD()
-{
-  Serial.println("Send cmd");
-}
-
 void sendCommand()
 {
-  int rssiIO = analogRead(5);
-  int resendIO = analogRead(4);
-  int msgReceivedIO = analogRead(3);
-  if (rssiIO > 1000)
+  Serial.println("interrup");
+  int rssi = analogRead(5);
+  int help = analogRead(4);
+  int resend = analogRead(3);
+  
+  if (rssi > 1000)
   {
     requestRSSI(0xFF);
+    Serial.println("rssi");
   }
-  if (resendIO > 1000)
+  if (help > 1000)
+  {
+    notifyHelpOnTheWay();
+    Serial.println("help");
+
+  }
+  if (resend > 1000)
   {
     requestResendMinerStatus();
-  }
-  if (msgReceivedIO > 1000)
-  {
-    sendMessageReceived();
+    Serial.println("resend");
+
   }
 }
 
@@ -181,23 +180,20 @@ void requestRSSI(uint8_t Addr)
   {
     return;
   }
-  Serial.print("Start Receiving\n\n");  
-  uint8_t receivedData [] = {0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
+  uint8_t receivedData [] = {0x01, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00};
   int timer = millis();
   int elapsedTime = 0;
-  /*while(receivedData[3] != 0x00)
-  {*/
-    adf7030.Wait_For_Reply(0x20000C18,2);
-    /*elapsedTime = millis() - timer;
-    Serial.println(elapsedTime);
+  while((receivedData[3] != 0x00) && (receivedData[2] != 0x00))
+  {
+    adf7030.Receive(0x20000C18,2);
+    adf7030.Read_Received(2, receivedData);
+    elapsedTime = millis() - timer;
     if (elapsedTime > 30000)
     {
       Serial.println("RSSI not received.");
       return;
     }
-  }
-  Serial.print("Finish Receiving\n\n");*/
-  
+  }  
   
   //adf7030.Read_Register(0x20000C18, 2);
   adf7030.Get_Register_Data(0x20000C18,2, receivedData);
@@ -265,13 +261,20 @@ void requestResendMinerStatus()
   {
     return;
   }
-  Serial.print("Start Receiving\n\n");    
-  if (adf7030.Wait_For_Reply(0x20000C18,2) == false)
+  uint8_t receivedData [] = {0x01, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00};
+  int timer = millis();
+  int elapsedTime = 0;
+  while((receivedData[3] != 0x00) && (receivedData[2] != 0x00))
   {
-    return;
-  }
-  Serial.print("Finish Receiving\n\n");
-  uint8_t receivedData [8];
+    adf7030.Receive(0x20000C18,2);
+    adf7030.Read_Received(2, receivedData);
+    elapsedTime = millis() - timer;
+    if (elapsedTime > 30000)
+    {
+      Serial.println("Miner status not received.");
+      return;
+    }
+  }  
   adf7030.Get_Register_Data(0x20000C18,2, receivedData);
   uint8_t minerStatusByte = receivedData[5];
   uint8_t alertByte = receivedData[4];

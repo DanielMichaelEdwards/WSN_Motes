@@ -39,22 +39,13 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV4);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
-  //attachInterrupt(digitalPinToInterrupt(TX_PKT_BTN), sendMinerStatus, RISING);
+  attachInterrupt(digitalPinToInterrupt(TX_PKT_BTN), sendMinerStatus, RISING);
   
 }
 
 int Data = 0;
 void loop() {
   Serial.println("ADF7030 is configuring...");
-///////////////////////////////////////////////////
-  //Start of Powerup From Cold sequence
-//////////////////////////////////////////////////
-  //adf7030.Power_Up_From_Cold();
-////////////////////////////////////////////
-  //End Of Power start up sequence
-/////////////////////////////////////////////
-
-
 ///////////////////////////////////////////
 //Start of Config Sequence
 /////////////////////////////////////////
@@ -106,7 +97,7 @@ void loop() {
     Serial.print("Finish Receiving\n\n");
     uint8_t registerData[8];
     adf7030.Read_Received(2, registerData);
-    if (registerData[3] == minerAddr)
+    if ((registerData[3] == minerAddr) && (registerData[2] == minerAddr))
     {
       digitalWrite(RX_LED, LOW);
       digitalWrite(TX_LED, HIGH);
@@ -119,6 +110,7 @@ void loop() {
 
 void sendMinerStatus()
 {
+  digitalWrite(RX_LED, LOW);
   //Take in the input from the switches. 
   //Encode the information
   //Write to the transmit register including header infomation
@@ -151,7 +143,8 @@ void sendMinerStatus()
   {
     trappedIO = 0;
   }
-  
+
+  digitalWrite(TX_LED, HIGH);
   uint8_t minerStatus = 0b00;
   minerStatus = injuredIO;
   minerStatus = minerStatus + (environIO << 1);
@@ -159,7 +152,7 @@ void sendMinerStatus()
   uint8_t Data[] = {minerAddr, minerAddr, 0x01, 0x00, 0x0A, minerStatus, 0x00, 0x00};
   adf7030.Write_To_Register(0x20000AF0,Data,2);
   adf7030.Transmit();
-  
+  digitalWrite(TX_LED, LOW);
 }
 
 void decodePacket(uint8_t registerData[])
@@ -193,10 +186,12 @@ void decodePacket(uint8_t registerData[])
     adf7030.Write_To_Register(0x20000AF0,Data,2);
     adf7030.Transmit(); 
   }
-  else if (registerData[4] == 0x82)
+  else if (registerData[4] == 0x82) 
   {
     //Resend the status of the miner mote
+    digitalWrite(RSND_LED, HIGH);
     sendMinerStatus();
+    digitalWrite(RSND_LED, LOW);
   }
   else if (registerData[4] == 0x00)
   {
