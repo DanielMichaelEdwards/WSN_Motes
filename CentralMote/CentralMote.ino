@@ -18,7 +18,7 @@ const int slaveSelectPin = 10;
 uint8_t minerAddr = 0xFF;
 uint8_t routes[3][3] = {{0x00, 0x00, 0x01},{0x01,0x00, 0x02},{0x02,0x01, 0x03}};//First size is the number of nodes. ie: [#nodes][#addresses]
 int receivedVal = 0;
-const int TX_PKT_SWTCH = 2;
+//const int TX_PKT_SWTCH = 2;
 const int RX_LED = 4;
 const int TX_LED = 5;
 const int ALRT_LED = 6;
@@ -32,7 +32,7 @@ void setup() {
   SPI.setClockDivider(SPI_CLOCK_DIV64);
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
-  pinMode(TX_PKT_SWTCH, INPUT);
+  //pinMode(TX_PKT_SWTCH, INPUT);
   pinMode(RX_LED, OUTPUT);
   pinMode(TX_LED, OUTPUT);
   pinMode(ALRT_LED, OUTPUT);
@@ -43,7 +43,6 @@ void setup() {
   SPI.transfer(0b10000101); 
   //Disbale Transceiver as Slave
   digitalWrite(slaveSelectPin, HIGH);
-  attachInterrupt(digitalPinToInterrupt(TX_PKT_SWTCH), sendCommand, RISING);
 }
 
 int Data = 0;
@@ -109,6 +108,24 @@ void loop() {
   adf7030.Go_To_PHY_ON();
   uint8_t Data_PHR[] = {0x47, 0xFC, 0xC0, 0xEE};
   adf7030.Write_To_Register(0x20000510, Data_PHR,1);
+  int rssi = analogRead(5);
+  int help = analogRead(4);
+  int resend = analogRead(3);
+  
+  if (rssi > 1000)
+  {
+    requestRSSI(0xFF);
+  }
+  if (help > 1000)
+  {
+    notifyHelpOnTheWay();
+
+  }
+  if (resend > 1000)
+  {
+    requestResendMinerStatus();
+
+  }
   while(1)
    {
         digitalWrite(RX_LED, HIGH);
@@ -124,7 +141,7 @@ void loop() {
           {
             digitalWrite(ALRT_LED, HIGH);
             //A miner is in distress
-            Serial.println("\n\nALERT! ALERT! Miner distress received!!");
+            Serial.println("\n\nALERT! ALERT! Miner message received!!");
             uint8_t sector = receivedData[0];
             if (sector == 0xFF)
             {
@@ -147,7 +164,7 @@ void loop() {
 
 void sendCommand()
 {
-  Serial.println("interrup");
+  /*Serial.println("interrup");
   int rssi = analogRead(5);
   int help = analogRead(4);
   int resend = analogRead(3);
@@ -168,7 +185,7 @@ void sendCommand()
     requestResendMinerStatus();
     Serial.println("resend");
 
-  }
+  }*/
 }
 
 void requestRSSI(uint8_t Addr)
@@ -318,6 +335,11 @@ void decodeMinerInfo(uint8_t minerStatusByte)
   boolean injuredIO = (minerStatusByte & 0x01) != 0;
   boolean environIO = (minerStatusByte & 0x02) != 0;
   boolean trappedIO = (minerStatusByte & 0x04) != 0;
+  if ((!injuredIO) && (!environIO) && (!trappedIO))
+  {
+    Serial.println("All clear");
+    return;
+  }
   if (injuredIO)
   {
     Serial.println("Miner injured.");
