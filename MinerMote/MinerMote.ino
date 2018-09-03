@@ -11,6 +11,7 @@ ADF7030 adf7030;
 const int Size_OF = sizeof(Radio_Memory_Configuration);
 
 // set pin 10 as the slave select for the digital pot:
+//
 const int slaveSelectPin = 10;
 //const int checking = 12;
 
